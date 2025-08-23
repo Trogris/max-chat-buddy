@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import maxAvatar from '@/assets/max-avatar.png';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -39,13 +40,17 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <MessageSquare className="h-8 w-8 text-primary" />
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+              <img 
+                src={maxAvatar} 
+                alt="Max - Assistente Virtual da Fiscaltech" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">MAX</CardTitle>
+          <CardTitle className="text-2xl font-bold">Max</CardTitle>
           <CardDescription>
-            Agente Virtual Interno da Empresa
+            Assistente Virtual da Fiscaltech
           </CardDescription>
         </CardHeader>
         <CardContent>

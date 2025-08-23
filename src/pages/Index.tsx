@@ -1,7 +1,8 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Users, BarChart3, Shield } from 'lucide-react';
+import { Users, BarChart3, Shield } from 'lucide-react';
+import maxAvatar from '@/assets/max-avatar.png';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -23,15 +24,17 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary/10 rounded-full">
-              <MessageSquare className="h-12 w-12 text-primary" />
+            <div className="w-32 h-32 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+              <img 
+                src={maxAvatar} 
+                alt="Max - Assistente Virtual da Fiscaltech" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
-          <h1 className="text-5xl font-bold mb-4">MAX</h1>
+          <h1 className="text-5xl font-bold mb-4">Max, seu assistente virtual na Fiscaltech</h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Seu Agente Virtual Interno da Empresa. 
-            Desenvolvido para auxiliar funcionários com informações, 
-            políticas e procedimentos internos.
+            Te ajudo com perguntas frequentes sobre procedimentos e processos
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>

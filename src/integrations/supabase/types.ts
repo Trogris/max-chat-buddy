@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_documents: {
+        Row: {
+          content: string
+          created_at: string
+          file_type: string
+          filename: string
+          id: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          file_type: string
+          filename: string
+          id?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_type?: string
+          filename?: string
+          id?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string

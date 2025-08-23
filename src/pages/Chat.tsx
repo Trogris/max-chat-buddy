@@ -16,6 +16,7 @@ import {
   Settings,
   Loader2 
 } from 'lucide-react';
+import maxAvatar from '@/assets/max-avatar.png';
 
 interface Message {
   id: string;
@@ -279,7 +280,7 @@ export default function Chat() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">MAX</h1>
+            <h1 className="text-xl font-bold">Max</h1>
           </div>
           <Button onClick={createNewConversation} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
@@ -325,9 +326,11 @@ export default function Chat() {
             <span className="truncate flex-1">{user.email}</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1">
-              <Settings className="h-4 w-4 mr-2" />
-              Admin
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href="/admin">
+                <Settings className="h-4 w-4 mr-2" />
+                Admin
+              </a>
             </Button>
             <Button variant="outline" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
@@ -347,22 +350,42 @@ export default function Chat() {
                     key={message.id}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-[70%] p-4 rounded-lg ${
-                        message.role === 'user'
-                          ? 'bg-chat-user text-foreground'
-                          : 'bg-chat-assistant text-foreground border'
-                      }`}
-                    >
-                      <div className="whitespace-pre-wrap">{message.content}</div>
+                    <div className={`flex gap-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {message.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                          <img 
+                            src={maxAvatar} 
+                            alt="Max" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div
+                        className={`p-4 rounded-lg ${
+                          message.role === 'user'
+                            ? 'bg-chat-user text-foreground'
+                            : 'bg-chat-assistant text-foreground border'
+                        }`}
+                      >
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      </div>
                     </div>
                   </div>
                 ))}
                 {loading && (
                   <div className="flex justify-start">
-                    <div className="bg-chat-assistant border p-4 rounded-lg flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>MAX está pensando...</span>
+                    <div className="flex gap-3 items-start">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                        <img 
+                          src={maxAvatar} 
+                          alt="Max" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="bg-chat-assistant border p-4 rounded-lg flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Max está pensando...</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -373,7 +396,7 @@ export default function Chat() {
             <div className="p-4 border-t">
               <div className="max-w-4xl mx-auto flex gap-2">
                 <Input
-                  placeholder="Digite sua mensagem para o MAX..."
+                  placeholder="Digite sua mensagem para o Max..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -388,13 +411,13 @@ export default function Chat() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Bem-vindo ao MAX</h2>
-              <p className="text-muted-foreground">
-                Selecione uma conversa ou crie uma nova para começar
-              </p>
-            </div>
+          <div className="text-center">
+            <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Max</h2>
+            <p className="text-muted-foreground">
+              Selecione uma conversa ou crie uma nova para começar
+            </p>
+          </div>
           </div>
         )}
       </div>

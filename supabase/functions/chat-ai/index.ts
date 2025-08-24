@@ -103,7 +103,7 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { message } = requestBody;
+    const { message, conversationHistory = [] } = requestBody;
 
     if (!message) {
       throw new Error('Mensagem é obrigatória');
@@ -111,11 +111,53 @@ serve(async (req) => {
 
     console.log('=== NOVA CONSULTA ===');
     console.log('Mensagem recebida:', message);
+    console.log('Histórico de conversação:', conversationHistory.length, 'mensagens');
 
     // Buscar documentos relevantes usando RAG
     const relevantContext = await searchRelevantDocuments(message);
+    console.log('Contexto encontrado, enviando para OpenAI...');
 
-    console.log('Enviando consulta para OpenAI...');
+    // Preparar mensagens com histórico e contexto
+    const systemPrompt = `Você é o MAX, assistente virtual da Fiscaltech. 
+
+PERSONALIDADE:
+- Amigável e prestativo
+- Use linguagem simples e humanizada
+- Sempre cordial e profissional
+- Responda sempre em português brasileiro
+
+FUNÇÃO PRINCIPAL:
+- Ajudar funcionários com perguntas sobre produtos, procedimentos e processos da empresa
+- Fornecer informações baseadas nos documentos oficiais da Fiscaltech carregados
+
+REGRAS CRÍTICAS:
+- Use APENAS as informações dos documentos fornecidos abaixo
+- Se não encontrar informação específica nos documentos, diga claramente: "Não encontrei essa informação nos documentos carregados"
+- SEMPRE cite o nome do documento quando fornecer informações específicas
+- Seja detalhado e específico em respostas técnicas
+- Se a pergunta não estiver relacionada aos documentos da empresa, redirecione educadamente
+
+CONTEXTO DOS DOCUMENTOS DA EMPRESA:
+${relevantContext}
+
+INSTRUÇÕES ADICIONAIS:
+- Sempre que houver $ na sua saída, substitua por S
+- Mantenha o contexto da conversa atual
+- Se o documento parecer ter problemas (ex: "Just a moment...Enable JavaScript"), informe que o documento precisa ser recarregado`;
+
+    // Construir array de mensagens com histórico
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Adicionar histórico de conversação (limitado às últimas 10 mensagens)
+    const recentHistory = conversationHistory.slice(-10);
+    messages.push(...recentHistory);
+
+    // Adicionar mensagem atual
+    messages.push({ role: 'user', content: message });
+
+    console.log('Enviando', messages.length, 'mensagens para OpenAI (incluindo system + histórico + atual)');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -125,34 +167,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'gpt-5-2025-08-07',
-        messages: [
-          {
-            role: 'system',
-            content: `Você é o MAX, assistente virtual da Fiscaltech. Sua função é:
-
-1. Ajudar funcionários com perguntas sobre procedimentos, produtos e processos da empresa
-2. Fornecer informações baseadas EXCLUSIVAMENTE nos documentos oficiais da Fiscaltech
-3. Usar linguagem simples, humanizada e voltada ao público interno
-4. Responder sempre em português brasileiro
-5. Ser cordial, profissional e prestativo
-
-INSTRUÇÕES CRÍTICAS:
-- Use APENAS as informações dos documentos fornecidos abaixo
-- Se não encontrar informação específica, diga claramente que não possui essa informação
-- Cite sempre o nome do documento quando fornecer informações
-- Seja específico e detalhado nas respostas técnicas
-- Se a pergunta não estiver relacionada aos documentos, redirecione educadamente
-
-CONTEXTO DOS DOCUMENTOS DA EMPRESA:
-${relevantContext}
-
-Responda com base nessas informações oficiais da Fiscaltech.`
-          },
-          { 
-            role: 'user', 
-            content: message 
-          }
-        ],
+        messages: messages,
         max_completion_tokens: 1500,
       }),
     });

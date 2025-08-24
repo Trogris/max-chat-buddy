@@ -23,6 +23,8 @@ interface Message {
   content: string;
   role: 'user' | 'assistant';
   created_at: string;
+  conversation_id?: string;
+  tokens?: number;
 }
 
 interface Conversation {
@@ -229,15 +231,33 @@ export default function Chat() {
       // Update messages state
       setMessages(prev => [...prev, userMsgData as Message]);
 
-      // Call AI
+      // Prepare conversation history for AI context (last 10 messages)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      console.log('Enviando para AI com histórico:', {
+        message: userMessage,
+        historyLength: conversationHistory.length
+      });
+
+      // Call AI with conversation history
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke('chat-ai', {
         body: {
           message: userMessage,
+          conversationHistory: conversationHistory,
           conversationId: currentConversation,
         }
       });
 
+      console.log('Resposta da AI:', aiResponse, aiError);
+
       if (aiError) throw aiError;
+
+      if (!aiResponse?.response) {
+        throw new Error('Resposta inválida da IA');
+      }
 
       // Add AI response to database
       const { data: aiMsgData, error: aiMsgError } = await supabase
@@ -251,10 +271,22 @@ export default function Chat() {
         .select()
         .single();
 
-      if (aiMsgError) throw aiMsgError;
-
-      // Update messages state
-      setMessages(prev => [...prev, aiMsgData as Message]);
+      if (aiMsgError) {
+        console.error('Erro ao salvar mensagem AI:', aiMsgError);
+        // Even if DB save fails, show the message to user
+        const aiMessage: Message = {
+          id: Math.random().toString(),
+          content: aiResponse.response,
+          role: 'assistant',
+          created_at: new Date().toISOString(),
+          conversation_id: currentConversation,
+          tokens: aiResponse.tokens || 0
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Update messages state
+        setMessages(prev => [...prev, aiMsgData as Message]);
+      }
 
       // Update conversation title if it's the first message
       if (messages.length === 0) {
@@ -269,6 +301,19 @@ export default function Chat() {
       await updateSessionStats(messages.length + 2, aiResponse.tokens || 0);
 
     } catch (error: any) {
+      console.error('Erro completo:', error);
+      
+      // Show error message in chat
+      const errorMessage: Message = {
+        id: Math.random().toString(),
+        content: `Erro: ${error.message || 'Não foi possível processar sua mensagem. Tente novamente.'}`,
+        role: 'assistant',
+        created_at: new Date().toISOString(),
+        conversation_id: currentConversation,
+        tokens: 0
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      
       toast({
         title: "Erro ao enviar mensagem",
         description: error.message || "Ocorreu um erro inesperado.",

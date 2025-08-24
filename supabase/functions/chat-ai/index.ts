@@ -180,16 +180,53 @@ INSTRUÇÕES ADICIONAIS:
 
     const data = await response.json();
     console.log('Resposta da OpenAI recebida com sucesso');
-    
-    const aiResponse = data.choices[0].message.content;
-    const tokensUsed = data.usage?.total_tokens || 0;
+
+    // Extrair texto de forma resiliente (modelos novos podem variar o formato)
+    const choice = data?.choices?.[0] ?? {};
+    const message = choice?.message ?? {};
+
+    function coerceToText(content: any): string {
+      if (!content) return '';
+      if (typeof content === 'string') return content;
+      if (Array.isArray(content)) {
+        try {
+          return content
+            .map((part: any) =>
+              typeof part === 'string'
+                ? part
+                : (part?.text ?? part?.content ?? '')
+            )
+            .join('')
+            .trim();
+        } catch (_) {
+          return '';
+        }
+      }
+      // Último recurso: stringify seguro
+      try {
+        return JSON.stringify(content);
+      } catch (_) {
+        return '';
+      }
+    }
+
+    let aiResponseText = coerceToText(message.content).trim();
+
+    if (!aiResponseText) {
+      console.warn('OpenAI retornou conteúdo vazio. Dump parcial da escolha:',
+        JSON.stringify({ finish_reason: choice.finish_reason, messageKeys: Object.keys(message || {}) }).slice(0, 500)
+      );
+      aiResponseText = 'Não encontrei informações suficientes para responder com precisão agora. Tente reformular a pergunta ou ser mais específico.';
+    }
+
+    const tokensUsed = data?.usage?.total_tokens || 0;
 
     console.log(`Tokens utilizados: ${tokensUsed}`);
     console.log('=== FIM DA CONSULTA ===');
 
-    return new Response(JSON.stringify({ 
-      response: aiResponse,
-      tokens: tokensUsed 
+    return new Response(JSON.stringify({
+      response: aiResponseText,
+      tokens: tokensUsed
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

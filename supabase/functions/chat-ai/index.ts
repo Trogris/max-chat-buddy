@@ -68,7 +68,7 @@ async function searchRelevantDocuments(userQuery: string) {
     const relevantDocs = docsWithScore
       .filter(doc => doc.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // Máximo 5 documentos
+      .slice(0, 3); // Máximo 3 documentos (otimizado para velocidade)
 
     console.log('Documentos relevantes encontrados:', relevantDocs.map(d => ({ filename: d.filename, score: d.score })));
 
@@ -78,9 +78,9 @@ async function searchRelevantDocuments(userQuery: string) {
 
     // Formatar contexto dos documentos mais relevantes (com limite de caracteres)
     const contextDocs = relevantDocs.map(doc => {
-      // Limitar cada documento a 8000 caracteres para evitar overflow
-      const truncatedContent = doc.content.length > 8000 
-        ? doc.content.substring(0, 8000) + '\n[... documento truncado para otimizar resposta ...]'
+      // Limitar cada documento a 3000 caracteres para acelerar o processamento
+      const truncatedContent = doc.content.length > 3000 
+        ? doc.content.substring(0, 3000) + '\n[... documento truncado para otimizar resposta ...]'
         : doc.content;
       
       return `=== DOCUMENTO: ${doc.filename} (Relevância: ${doc.score}) ===\n${truncatedContent}\n=== FIM DO DOCUMENTO ===\n`;
@@ -145,10 +145,15 @@ REGRAS CRÍTICAS:
 CONTEXTO DOS DOCUMENTOS DA EMPRESA:
 ${relevantContext}
 
-INSTRUÇÕES ADICIONAIS:
-- Sempre que houver $ na sua saída, substitua por S
-- Mantenha o contexto da conversa atual
-- Se o documento parecer ter problemas (ex: "Just a moment...Enable JavaScript"), informe que o documento precisa ser recarregado`;
+    INSTRUÇÕES ADICIONAIS:
+    - Sempre que houver $ na sua saída, substitua por S
+    - Mantenha o contexto da conversa atual
+    - Se o documento parecer ter problemas (ex: "Just a moment...Enable JavaScript"), informe que o documento precisa ser recarregado
+    - Estilo: responda de forma objetiva (3–6 frases) ou bullets curtos quando útil
+    - Use linguagem natural e clara; permita uso moderado de até 2 emojis contextuais 🙂
+    - Priorize velocidade: seja conciso, evite redundâncias e repetições
+    - Sempre cite o nome do documento quando usar informação específica`;
+
 
     // Construir array de mensagens com histórico
     const messages = [
@@ -171,9 +176,10 @@ INSTRUÇÕES ADICIONAIS:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        messages: messages,
-        max_completion_tokens: 4000,
+        model: 'gpt-4o-mini',
+        messages,
+        max_tokens: 500,
+        temperature: 0.4,
       }),
     });
 

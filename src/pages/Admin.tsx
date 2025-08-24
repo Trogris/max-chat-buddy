@@ -521,7 +521,7 @@ export default function Admin() {
                     <CardTitle className="text-sm">Custo Estimado</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">S{maxKPIs.consumo.custoEstimado.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">${maxKPIs.consumo.custoEstimado.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">custo aproximado</p>
                   </CardContent>
                 </Card>

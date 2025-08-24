@@ -255,8 +255,28 @@ export default function Chat() {
 
       if (aiError) throw aiError;
 
-      if (!aiResponse?.response) {
-        throw new Error('Resposta inválida da IA');
+      // Normalize AI response shape
+      const answerText = (aiResponse && typeof aiResponse === 'object' && 'response' in aiResponse)
+        ? (aiResponse as any).response
+        : (typeof aiResponse === 'string' ? aiResponse : null);
+      const tokensUsed = (aiResponse && typeof aiResponse === 'object' && 'tokens' in aiResponse)
+        ? (aiResponse as any).tokens || 0
+        : 0;
+
+      if (!answerText) {
+        console.warn('AI returned unexpected payload:', aiResponse);
+        const fallback = 'Não consegui gerar uma resposta agora. Verifique se a OPENAI_API_KEY está configurada e tente novamente.';
+        // Show fallback to the user
+        const aiMessage: Message = {
+          id: Math.random().toString(),
+          content: fallback,
+          role: 'assistant',
+          created_at: new Date().toISOString(),
+          conversation_id: currentConversation,
+          tokens: 0,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        return;
       }
 
       // Add AI response to database
@@ -264,9 +284,9 @@ export default function Chat() {
         .from('messages')
         .insert({
           conversation_id: currentConversation,
-          content: aiResponse.response,
+          content: answerText,
           role: 'assistant',
-          tokens: aiResponse.tokens || 0,
+          tokens: tokensUsed,
         })
         .select()
         .single();

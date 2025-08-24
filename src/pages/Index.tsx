@@ -6,8 +6,11 @@ import maxAvatar from '@/assets/max-avatar.png';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  
+  console.log('Index - rendering:', { user: !!user, loading });
 
   if (loading) {
+    console.log('Index - showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -16,9 +19,11 @@ const Index = () => {
   }
 
   if (user) {
+    console.log('Index - user authenticated, redirecting to chat');
     return <Navigate to="/chat" replace />;
   }
 
+  console.log('Index - showing landing page');
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background">
       <div className="container mx-auto px-4 py-16">

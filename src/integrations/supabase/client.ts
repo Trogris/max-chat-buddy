@@ -2,16 +2,30 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Ensure Supabase client is properly initialized
 const SUPABASE_URL = "https://dcrbacdjfbgpvzbbcwws.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjcmJhY2RqZmJncHZ6YmJjd3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NDEzMjMsImV4cCI6MjA3MTUxNzMyM30.5ovxFfO1orfUbc3LUrRyDl3vMjENetMaaqV6DmQ-BWA";
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('Supabase configuration missing');
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
+  }
+});
+
+// Test connection
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error('Supabase connection error:', error);
+  } else {
+    console.log('Supabase connected successfully');
   }
 });

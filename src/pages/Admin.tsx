@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,9 +20,10 @@ import {
   AlertTriangle,
   DollarSign,
   Activity,
-  Edit3
+  Edit,
+  Check,
+  X
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Profile {
   id: string;
@@ -87,6 +89,21 @@ export default function Admin() {
   });
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+
+  const areas = [
+    'Não informado',
+    'Produção e MI',
+    'Engenharia', 
+    'Implantação',
+    'Operação e Suporte',
+    'Comercial',
+    'RH',
+    'Orçamentos',
+    'Suprimentos',
+    'Escritório da Qualidade',
+    'P&D'
+  ];
 
   useEffect(() => {
     if (user) {
@@ -297,22 +314,25 @@ export default function Admin() {
     }
   };
 
-  const updateUserArea = async (userId: string, newArea: string) => {
+  const updateUserArea = async (userId: string, area: string) => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ area: newArea })
+        .update({ area })
         .eq('user_id', userId);
 
       if (error) throw error;
 
+      setProfiles(profiles.map(profile => 
+        profile.user_id === userId ? { ...profile, area } : profile
+      ));
+      
       toast({
         title: "Área atualizada",
         description: "A área do usuário foi atualizada com sucesso.",
       });
       
-      // Recarregar dados
-      loadProfiles();
+      // Recarregar KPIs para atualizar estatísticas por área
       loadMaxKPIs();
     } catch (error: any) {
       toast({

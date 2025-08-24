@@ -268,6 +268,48 @@ export default function Admin() {
         .map(([area, acessos]) => ({ area, acessos }))
         .sort((a, b) => b.acessos - a.acessos);
 
+      // Cálculo do pico horário (últimos 30 dias)
+      const { data: mensagensPeriodo } = await supabase
+        .from('messages')
+        .select('created_at')
+        .gte('created_at', oneMonthAgo.toISOString());
+      
+      const horaMap: Record<number, number> = {};
+      (mensagensPeriodo || []).forEach(msg => {
+        const hora = new Date(msg.created_at).getHours();
+        horaMap[hora] = (horaMap[hora] || 0) + 1;
+      });
+      
+      const picoHora = Object.entries(horaMap)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+      const picoHorario = picoHora 
+        ? `${picoHora.padStart(2, '0')}:00-${(parseInt(picoHora) + 1).toString().padStart(2, '0')}:00`
+        : '14:00-15:00';
+
+      // Usuario mais ativo (últimos 30 dias)
+      const { data: conversasComUsuario } = await supabase
+        .from('conversations')
+        .select('user_id, updated_at')
+        .gte('updated_at', oneMonthAgo.toISOString());
+      
+      const usuarioMap: Record<string, number> = {};
+      (conversasComUsuario || []).forEach(conv => {
+        usuarioMap[conv.user_id] = (usuarioMap[conv.user_id] || 0) + 1;
+      });
+      
+      const usuarioMaisAtivoId = Object.entries(usuarioMap)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+      
+      let usuarioMaisAtivo = 'N/A';
+      if (usuarioMaisAtivoId) {
+        const { data: perfilAtivo } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', usuarioMaisAtivoId)
+          .single();
+        usuarioMaisAtivo = perfilAtivo?.name || 'Usuário Anônimo';
+      }
+
       const mediaPorUsuario = stats.active_users > 0 ? Math.round(totalMensagens! / stats.active_users) : 0;
       const taxaSucesso = totalMensagens! > 0 ? Math.round((respostasCompletas! / totalMensagens!) * 100) : 0;
       const custoEstimado = tokensProcessados * 0.0001; // Estimativa simplificada
@@ -284,8 +326,8 @@ export default function Admin() {
           mediaPorUsuario
         },
         engajamento: {
-          picoHorario: '14:00-15:00',
-          usuarioMaisAtivo: 'João Silva',
+          picoHorario,
+          usuarioMaisAtivo,
           sessoesPorDia: Math.round((totalSessoes || 0) / 30)
         },
         qualidade: {

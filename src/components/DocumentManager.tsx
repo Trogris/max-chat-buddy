@@ -35,7 +35,7 @@ export default function DocumentManager() {
   const MAX_FILE_SIZE_MB = 20;
   const CHUNK_LIMIT = 100_000;
   const SUPABASE_BATCH = 100;
-  const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt'];
+  const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt', '.docx'];
   
   const toExt = (name: string) => '.' + (name.split('.').pop()?.toLowerCase() || '');
   const hashString = async (s: string) => {
@@ -225,14 +225,14 @@ export default function DocumentManager() {
           <div className="text-center">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-2">
-              Aceita: TXT, CSV, XLS, XLSX, PDF (até {MAX_FILE_SIZE_MB}MB cada)
+              Aceita: TXT, CSV, XLS, XLSX, PDF, DOCX (até {MAX_FILE_SIZE_MB}MB cada)
             </p>
             <p className="text-sm text-muted-foreground mb-4">
               Máximo: {MAX_FILES} arquivos, {MAX_TOTAL_SIZE_MB}MB total • Deduplicação automática
             </p>
             <Input
               type="file"
-              accept=".csv,.xls,.xlsx,.pdf,.txt"
+              accept=".csv,.xls,.xlsx,.pdf,.txt,.docx"
               multiple
               onChange={handleFileUpload}
               disabled={uploading}

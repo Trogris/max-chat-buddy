@@ -13,7 +13,7 @@ export type ProcessedFile = {
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
 const MAX_CHARS = 200_000;
-const SUPPORTED_EXTS = ['.txt', '.csv', '.xls', '.xlsx', '.pdf']; // habilite '.docx' depois
+const SUPPORTED_EXTS = ['.txt', '.csv', '.xls', '.xlsx', '.pdf', '.docx']; // habilite '.docx' depois
 
 const getExt = (name: string) => '.' + (name.split('.').pop()?.toLowerCase() || '');
 const normalize = (s: string) =>
@@ -78,13 +78,12 @@ export async function processFile(file: File): Promise<ProcessedFile> {
     return { text: out, meta: { name: file.name, size: file.size, type: file.type, ext, pages: pdf.numPages, truncated: out.length >= MAX_CHARS } };
   }
 
-  // DOCX (opcional — descomente quando quiser habilitar)
-  // if (ext === '.docx') {
-  //   const mammoth = await import('mammoth');
-  //   const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() } as any);
-  //   const out = normalize(value).slice(0, MAX_CHARS);
-  //   return { text: out, meta: { name: file.name, size: file.size, type: file.type, ext, truncated: out.length >= MAX_CHARS } };
-  // }
+  if (ext === '.docx') {
+    const mammoth = await import('mammoth');
+    const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() } as any);
+    const out = normalize(value).slice(0, MAX_CHARS);
+    return { text: out, meta: { name: file.name, size: file.size, type: file.type, ext, truncated: out.length >= MAX_CHARS } };
+  }
 
   throw new Error(`Extensão não tratada: ${ext}`);
 }

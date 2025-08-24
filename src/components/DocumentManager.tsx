@@ -8,12 +8,7 @@ import { Upload, Trash2, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
-import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
-// Vite: import worker URL
-// @ts-ignore - pdfjs provides worker as URL
-import pdfWorker from 'pdfjs-dist/build/pdf.worker?url';
-GlobalWorkerOptions.workerSrc = pdfWorker;
+
 interface Document {
   id: string;
   filename: string;
@@ -27,10 +22,10 @@ export default function DocumentManager() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Limits
+  // Limites conforme solicitado
   const MAX_FILES = 10;
-  const MAX_SIZE_MB = 10;
-  const MAX_CONTENT_CHARS = 200000;
+  const MAX_TOTAL_SIZE_MB = 200;
+  const MAX_FILE_SIZE_MB = 50;
 
   useEffect(() => {
     loadDocuments();
@@ -57,127 +52,137 @@ export default function DocumentManager() {
     }
   };
 
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          resolve(result);
+        } else {
+          resolve('');
+        }
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsText(file, 'UTF-8');
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (!user || files.length === 0) return;
 
+    console.log('Iniciando upload de', files.length, 'arquivos');
+
+    // Validações básicas
     if (files.length > MAX_FILES) {
       toast({
-        title: `Limite de ${MAX_FILES} arquivos por envio`,
-        description: `Selecione até ${MAX_FILES} arquivos por vez.`,
+        title: `Limite excedido`,
+        description: `Máximo ${MAX_FILES} arquivos por vez.`,
         variant: 'destructive',
       });
       return;
     }
 
-    const allowedExt = ['.csv', '.xls', '.xlsx', '.pdf', '.txt'];
-    const oversize = files.find(f => f.size > MAX_SIZE_MB * 1024 * 1024);
-    if (oversize) {
+    // Calcular tamanho total
+    const totalSizeMB = files.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024);
+    if (totalSizeMB > MAX_TOTAL_SIZE_MB) {
+      toast({
+        title: `Tamanho total excede ${MAX_TOTAL_SIZE_MB}MB`,
+        description: `Total atual: ${Math.round(totalSizeMB)}MB`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Verificar arquivos muito grandes individualmente
+    const oversizeFile = files.find(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+    if (oversizeFile) {
       toast({
         title: `Arquivo muito grande`,
-        description: `${oversize.name} excede ${MAX_SIZE_MB}MB.`,
+        description: `${oversizeFile.name} excede ${MAX_FILE_SIZE_MB}MB`,
         variant: 'destructive',
       });
       return;
     }
 
-    const invalid = files.find(f => !allowedExt.includes('.' + (f.name.split('.').pop()?.toLowerCase() || '')));
-    if (invalid) {
+    // Verificar tipos suportados
+    const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt'];
+    const invalidFile = files.find(f => {
+      const ext = '.' + (f.name.split('.').pop()?.toLowerCase() || '');
+      return !allowedExts.includes(ext);
+    });
+    
+    if (invalidFile) {
       toast({
-        title: 'Tipo de arquivo não suportado',
-        description: `${invalid.name} não é suportado. Use CSV, XLS, XLSX, PDF ou TXT.`,
+        title: 'Tipo não suportado',
+        description: `${invalidFile.name} não é suportado.`,
         variant: 'destructive',
       });
       return;
     }
 
     setUploading(true);
+
     try {
-      const rows: any[] = [];
+      const documentsToInsert = [];
 
       for (const file of files) {
         try {
-          const content = await extractContent(file);
-          rows.push({
+          console.log('Processando arquivo:', file.name);
+          
+          // Ler conteúdo como texto simples por enquanto
+          const content = await readFileAsText(file);
+          
+          documentsToInsert.push({
             filename: file.name,
-            content: content.slice(0, MAX_CONTENT_CHARS),
+            content: content.slice(0, 100000), // Limitar conteúdo a 100k caracteres
             file_type: '.' + (file.name.split('.').pop()?.toLowerCase() || ''),
             uploaded_by: user.id,
           });
+
+          console.log('Arquivo processado com sucesso:', file.name);
         } catch (err: any) {
+          console.error('Erro ao processar', file.name, ':', err);
           toast({
-            title: `Erro ao processar ${file.name}`,
-            description: err?.message || String(err),
+            title: `Erro em ${file.name}`,
+            description: err?.message || 'Erro desconhecido',
             variant: 'destructive',
           });
         }
       }
 
-      if (rows.length > 0) {
-        const { error } = await supabase.from('company_documents').insert(rows);
-        if (error) throw error;
-        toast({ title: 'Upload concluído', description: `${rows.length} arquivo(s) adicionados.` });
+      if (documentsToInsert.length > 0) {
+        console.log('Inserindo', documentsToInsert.length, 'documentos no banco');
+        
+        const { error } = await supabase
+          .from('company_documents')
+          .insert(documentsToInsert);
+
+        if (error) {
+          console.error('Erro no Supabase:', error);
+          throw error;
+        }
+
+        toast({
+          title: 'Upload concluído!',
+          description: `${documentsToInsert.length} arquivo(s) carregados com sucesso.`,
+        });
+
         loadDocuments();
       }
+
       event.target.value = '';
     } catch (error: any) {
-      toast({ title: 'Erro ao enviar documentos', description: error.message, variant: 'destructive' });
+      console.error('Erro geral no upload:', error);
+      toast({
+        title: 'Erro no upload',
+        description: error.message || 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setUploading(false);
     }
-  };
-
-  // Helpers to extract text from different file types
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo (texto)'));
-      reader.readAsText(file, 'UTF-8');
-    });
-  };
-
-  const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo (binário)'));
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    const buffer = await readFileAsArrayBuffer(file);
-    const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise;
-    let text = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = (content.items as any[])
-        .map((it: any) => (typeof it?.str === 'string' ? it.str : ''))
-        .join(' ');
-      text += `\n\n--- Página ${i} ---\n${pageText}`;
-    }
-    return text.trim();
-  };
-
-  const extractTextFromXLSX = async (file: File): Promise<string> => {
-    const buffer = await readFileAsArrayBuffer(file);
-    const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-    let out = '';
-    wb.SheetNames.forEach((name) => {
-      const ws = wb.Sheets[name];
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      out += `\n\n### Planilha: ${name}\n${csv}`;
-    });
-    return out.trim();
-  };
-
-  const extractContent = async (file: File): Promise<string> => {
-    const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
-    if (ext === '.pdf') return extractTextFromPDF(file);
-    if (ext === '.xls' || ext === '.xlsx') return extractTextFromXLSX(file);
-    return readFileAsText(file);
   };
 
   const deleteDocument = async (documentId: string) => {
@@ -220,7 +225,7 @@ export default function DocumentManager() {
           <div className="text-center">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-4">
-              Formatos: CSV, XLS, XLSX, PDF, TXT • até {MAX_FILES} arquivos por vez • máx. {MAX_SIZE_MB}MB cada
+              Até {MAX_FILES} arquivos • Total máx. {MAX_TOTAL_SIZE_MB}MB • CSV, XLS, XLSX, PDF, TXT
             </p>
             <Input
               type="file"

@@ -18,8 +18,10 @@ import {
   TrendingUp,
   AlertTriangle,
   DollarSign,
-  Activity
+  Activity,
+  Edit3
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Profile {
   id: string;
@@ -27,6 +29,7 @@ interface Profile {
   role: string;
   created_at: string;
   user_id: string;
+  area?: string;
 }
 
 interface UsageStats {
@@ -288,6 +291,32 @@ export default function Admin() {
     } catch (error: any) {
       toast({
         title: "Erro ao carregar KPIs do Max",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserArea = async (userId: string, newArea: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ area: newArea })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Área atualizada",
+        description: "A área do usuário foi atualizada com sucesso.",
+      });
+      
+      // Recarregar dados
+      loadProfiles();
+      loadMaxKPIs();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar área",
         description: error.message,
         variant: "destructive",
       });
@@ -651,20 +680,48 @@ export default function Admin() {
                       key={profile.id}
                       className="flex items-center justify-between p-4 border rounded-lg"
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{profile.name}</p>
                         <p className="text-sm text-muted-foreground">
                           Criado em {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                         </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Área: {profile.area || 'Não informado'}
+                        </p>
                       </div>
-                      <div className="text-right">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          profile.role === 'admin' 
-                            ? 'bg-primary/10 text-primary' 
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {profile.role === 'admin' ? 'Administrador' : 'Usuário'}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            profile.role === 'admin' 
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {profile.role === 'admin' ? 'Administrador' : 'Usuário'}
+                          </span>
+                        </div>
+                        <div className="min-w-[150px]">
+                          <Select
+                            value={profile.area || 'Não informado'}
+                            onValueChange={(value) => updateUserArea(profile.user_id, value)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg">
+                              <SelectItem value="Não informado">Não informado</SelectItem>
+                              <SelectItem value="Produção e MI">Produção e MI</SelectItem>
+                              <SelectItem value="Engenharia">Engenharia</SelectItem>
+                              <SelectItem value="Implantação">Implantação</SelectItem>
+                              <SelectItem value="Operação e Suporte">Operação e Suporte</SelectItem>
+                              <SelectItem value="Comercial">Comercial</SelectItem>
+                              <SelectItem value="RH">RH</SelectItem>
+                              <SelectItem value="Orçamentos">Orçamentos</SelectItem>
+                              <SelectItem value="Suprimentos">Suprimentos</SelectItem>
+                              <SelectItem value="Escritório da Qualidade">Escritório da Qualidade</SelectItem>
+                              <SelectItem value="P&D">P&D</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   ))}

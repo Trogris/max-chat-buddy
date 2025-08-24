@@ -123,6 +123,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          area: string | null
           created_at: string
           id: string
           name: string
@@ -131,6 +132,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          area?: string | null
           created_at?: string
           id?: string
           name: string
@@ -139,6 +141,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          area?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -150,6 +153,7 @@ export type Database = {
       }
       usage_stats: {
         Row: {
+          area: string | null
           created_at: string
           id: string
           messages_count: number
@@ -160,6 +164,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          area?: string | null
           created_at?: string
           id?: string
           messages_count?: number
@@ -170,6 +175,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          area?: string | null
           created_at?: string
           id?: string
           messages_count?: number

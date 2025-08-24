@@ -66,6 +66,7 @@ interface MaxKPIs {
     custoEstimado: number;
     modeloMaisUsado: string;
   };
+  acessosPorArea: { area: string; acessos: number }[];
 }
 
 export default function Admin() {
@@ -78,7 +79,8 @@ export default function Admin() {
     engajamento: { picoHorario: '14:00-15:00', usuarioMaisAtivo: 'N/A', sessoesPorDia: 0 },
     qualidade: { taxaSucesso: 0, perguntasSemResposta: 0, respostasCompletas: 0 },
     performance: { tempoMedioResposta: 0, errosRegistrados: 0, disponibilidade: 99.9 },
-    consumo: { tokensProcessados: 0, custoEstimado: 0, modeloMaisUsado: 'gpt-4o-mini' }
+    consumo: { tokensProcessados: 0, custoEstimado: 0, modeloMaisUsado: 'gpt-4o-mini' },
+    acessosPorArea: []
   });
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -185,21 +187,24 @@ export default function Admin() {
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      // Usuários ativos por período
-      const { count: usuariosDia } = await supabase
-        .from('messages')
-        .select('user_id', { count: 'exact', head: true })
-        .gte('created_at', oneDayAgo.toISOString());
+      // Usuários ativos por período (baseado em conversas atualizadas no período)
+      const { data: convDia } = await supabase
+        .from('conversations')
+        .select('user_id, updated_at')
+        .gte('updated_at', oneDayAgo.toISOString());
+      const usuariosDia = new Set((convDia || []).map(c => c.user_id)).size;
 
-      const { count: usuariosSemana } = await supabase
-        .from('messages')
-        .select('user_id', { count: 'exact', head: true })
-        .gte('created_at', oneWeekAgo.toISOString());
+      const { data: convSemana } = await supabase
+        .from('conversations')
+        .select('user_id, updated_at')
+        .gte('updated_at', oneWeekAgo.toISOString());
+      const usuariosSemana = new Set((convSemana || []).map(c => c.user_id)).size;
 
-      const { count: usuariosMes } = await supabase
-        .from('messages')
-        .select('user_id', { count: 'exact', head: true })
-        .gte('created_at', oneMonthAgo.toISOString());
+      const { data: convMes } = await supabase
+        .from('conversations')
+        .select('user_id, updated_at')
+        .gte('updated_at', oneMonthAgo.toISOString());
+      const usuariosMes = new Set((convMes || []).map(c => c.user_id)).size;
 
       // Total de conversas e mensagens
       const { count: totalSessoes } = await supabase
@@ -222,6 +227,26 @@ export default function Admin() {
         .select('tokens_count');
 
       const tokensProcessados = tokenData?.reduce((sum, stat) => sum + (stat.tokens_count || 0), 0) || 0;
+
+      // Acessos por área (últimos 30 dias)
+      const { data: convPeriodo } = await supabase
+        .from('conversations')
+        .select('user_id, updated_at')
+        .gte('updated_at', oneMonthAgo.toISOString());
+      const userIdsPeriodo = Array.from(new Set((convPeriodo || []).map(c => c.user_id)));
+      const { data: perfisPeriodo } = await supabase
+        .from('profiles')
+        .select('user_id, area')
+        .in('user_id', userIdsPeriodo);
+      const areaDeUsuario = new Map((perfisPeriodo || []).map(p => [p.user_id, p.area || 'Não informado']));
+      const areaMap: Record<string, number> = {};
+      for (const conv of convPeriodo || []) {
+        const area = areaDeUsuario.get(conv.user_id) || 'Não informado';
+        areaMap[area] = (areaMap[area] || 0) + 1;
+      }
+      const acessosPorArea = Object.entries(areaMap)
+        .map(([area, acessos]) => ({ area, acessos }))
+        .sort((a, b) => b.acessos - a.acessos);
 
       const mediaPorUsuario = stats.active_users > 0 ? Math.round(totalMensagens! / stats.active_users) : 0;
       const taxaSucesso = totalMensagens! > 0 ? Math.round((respostasCompletas! / totalMensagens!) * 100) : 0;
@@ -257,7 +282,8 @@ export default function Admin() {
           tokensProcessados,
           custoEstimado,
           modeloMaisUsado: 'gpt-4o-mini'
-        }
+        },
+        acessosPorArea
       });
     } catch (error: any) {
       toast({
@@ -534,6 +560,31 @@ export default function Admin() {
                     <p className="text-xs text-muted-foreground">modelo principal</p>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+
+            {/* Acessos por Área */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Acessos por Área (últimos 30 dias)
+              </h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {maxKPIs.acessosPorArea.length ? (
+                  maxKPIs.acessosPorArea.map((item) => (
+                    <Card key={item.area}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">{item.area}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{item.acessos}</div>
+                        <p className="text-xs text-muted-foreground">acessos no período</p>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sem dados suficientes.</p>
+                )}
               </div>
             </div>
           </TabsContent>

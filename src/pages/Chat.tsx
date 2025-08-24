@@ -545,7 +545,7 @@ export default function Chat() {
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t">
+            <div className="p-3 sm:p-4 border-t bg-background/95 backdrop-blur-sm">
               <div className="max-w-4xl mx-auto flex gap-2">
                 <Input
                   placeholder="Digite sua mensagem para o Max..."
@@ -553,9 +553,13 @@ export default function Chat() {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   disabled={loading}
-                  className="flex-1"
+                  className="flex-1 h-10 sm:h-10"
                 />
-                <Button onClick={sendMessage} disabled={loading || !inputValue.trim()}>
+                <Button 
+                  onClick={sendMessage} 
+                  disabled={loading || !inputValue.trim()}
+                  className="h-10 px-3 sm:px-4"
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

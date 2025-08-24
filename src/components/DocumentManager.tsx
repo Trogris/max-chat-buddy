@@ -102,31 +102,10 @@ export default function DocumentManager() {
         });
       }
       
-      // Para arquivos Word
-      if (['.doc', '.docx'].includes(extension)) {
-        const mammoth = await import('mammoth');
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const arrayBuffer = e.target?.result as ArrayBuffer;
-              const result = await mammoth.extractRawText({ arrayBuffer });
-              console.log(`Conteúdo extraído (Word):`, result.value.substring(0, 200) + '...');
-              resolve(result.value);
-            } catch (err) {
-              console.error('Erro ao processar Word:', err);
-              reject(new Error('Erro ao processar documento Word'));
-            }
-          };
-          reader.onerror = () => reject(new Error('Erro ao ler arquivo Word'));
-          reader.readAsArrayBuffer(file);
-        });
-      }
-      
-      // Para PDFs - extração simples de metadados
+      // Para PDFs - extração simples de metadados por enquanto
       if (extension === '.pdf') {
         console.log('PDF detectado - extraindo informações básicas');
-        return `Documento PDF: ${file.name}\nTamanho: ${Math.round(file.size / 1024)}KB\nTipo: Documento PDF\nNota: Para melhor indexação, converta o PDF para formato de texto ou Word.`;
+        return `Documento PDF: ${file.name}\nTamanho: ${Math.round(file.size / 1024)}KB\nTipo: Documento PDF\nNota: Para melhor indexação, converta o PDF para formato de texto.`;
       }
       
       throw new Error(`Tipo de arquivo não suportado: ${extension}`);
@@ -175,8 +154,8 @@ export default function DocumentManager() {
       return;
     }
 
-    // Verificar tipos suportados (incluindo Word)
-    const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt', '.doc', '.docx'];
+    // Verificar tipos suportados (removendo Word temporariamente)
+    const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt'];
     const invalidFile = files.find(f => {
       const ext = '.' + (f.name.split('.').pop()?.toLowerCase() || '');
       return !allowedExts.includes(ext);
@@ -294,11 +273,11 @@ export default function DocumentManager() {
           <div className="text-center">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-4">
-              Até {MAX_FILES} arquivos • Total máx. {MAX_TOTAL_SIZE_MB}MB • CSV, XLS, XLSX, PDF, TXT, DOC, DOCX
+              Até {MAX_FILES} arquivos • Total máx. {MAX_TOTAL_SIZE_MB}MB • CSV, XLS, XLSX, PDF, TXT
             </p>
             <Input
               type="file"
-              accept=".csv,.xls,.xlsx,.pdf,.txt,.doc,.docx"
+              accept=".csv,.xls,.xlsx,.pdf,.txt"
               multiple
               onChange={handleFileUpload}
               disabled={uploading}

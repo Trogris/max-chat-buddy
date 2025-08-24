@@ -41,8 +41,33 @@ export default function Chat() {
   const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const ensureUserProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingProfile) {
+        await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            name: user.email?.split('@')[0] || 'Usuário',
+            role: 'admin'
+          });
+      }
+    } catch (error) {
+      console.error('Erro ao criar perfil:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
+      ensureUserProfile();
       loadConversations();
       trackSession();
     }

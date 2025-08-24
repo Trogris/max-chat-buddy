@@ -13,38 +13,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function getCompanyDocuments() {
+// Função para buscar documentos relevantes baseado na consulta do usuário
+async function searchRelevantDocuments(userQuery: string) {
   try {
-    console.log('Buscando documentos da empresa...');
-    const { data, error } = await supabase
+    console.log('Iniciando busca por documentos relevantes para:', userQuery);
+    
+    // Buscar todos os documentos
+    const { data: allDocs, error } = await supabase
       .from('company_documents')
-      .select('filename, content')
-      .limit(50); // Limit to avoid exceeding token limits
+      .select('id, filename, content')
+      .limit(100);
 
     if (error) {
-      console.error('Error fetching documents:', error);
-      return 'Nenhum documento da empresa disponível no momento.';
+      console.error('Erro ao buscar documentos:', error);
+      return 'Nenhum documento encontrado.';
     }
 
-    if (!data || data.length === 0) {
-      console.log('Nenhum documento encontrado no banco');
-      return 'Nenhum documento da empresa foi carregado ainda. Por favor, peça ao administrador para carregar os documentos oficiais.';
+    if (!allDocs || allDocs.length === 0) {
+      console.log('Nenhum documento no banco de dados');
+      return 'Nenhum documento da empresa foi carregado. Por favor, peça ao administrador para carregar os documentos oficiais.';
     }
 
-    console.log(`Encontrados ${data.length} documentos:`, data.map(d => d.filename));
+    console.log(`Encontrados ${allDocs.length} documentos para análise`);
 
-    // Format documents for context with better formatting
-    const formattedDocs = data.map(doc => 
-      `=== DOCUMENTO: ${doc.filename} ===\n${doc.content}\n=== FIM DO DOCUMENTO ===\n`
+    // Palavras-chave da consulta do usuário
+    const queryWords = userQuery.toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 2)
+      .filter(word => !['que', 'como', 'para', 'por', 'com', 'sem', 'sob', 'sobre', 'qual', 'onde', 'quando', 'fale', 'me', 'do', 'da', 'de', 'em', 'no', 'na'].includes(word));
+
+    console.log('Palavras-chave extraídas:', queryWords);
+
+    // Calcular relevância de cada documento
+    const docsWithScore = allDocs.map(doc => {
+      const content = doc.content.toLowerCase();
+      let score = 0;
+      
+      // Contagem de palavras-chave encontradas
+      queryWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = content.match(regex) || [];
+        score += matches.length * 10; // Peso para correspondências exatas
+        
+        // Busca por palavras parciais (maior flexibilidade)
+        if (content.includes(word)) {
+          score += 5;
+        }
+      });
+
+      return { ...doc, score };
+    });
+
+    // Ordenar por relevância e pegar os mais relevantes
+    const relevantDocs = docsWithScore
+      .filter(doc => doc.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5); // Máximo 5 documentos
+
+    console.log('Documentos relevantes encontrados:', relevantDocs.map(d => ({ filename: d.filename, score: d.score })));
+
+    if (relevantDocs.length === 0) {
+      return `Não encontrei informações específicas sobre "${userQuery}" nos documentos carregados. Os documentos disponíveis são: ${allDocs.map(d => d.filename).join(', ')}. Tente reformular sua pergunta ou seja mais específico.`;
+    }
+
+    // Formatar contexto dos documentos mais relevantes
+    const contextDocs = relevantDocs.map(doc => 
+      `=== DOCUMENTO: ${doc.filename} (Relevância: ${doc.score}) ===\n${doc.content}\n=== FIM DO DOCUMENTO ===\n`
     ).join('\n');
 
-    const totalChars = formattedDocs.length;
-    console.log(`Contexto formatado com ${totalChars} caracteres`);
-
-    return formattedDocs;
+    console.log(`Contexto preparado com ${contextDocs.length} caracteres de ${relevantDocs.length} documentos`);
+    
+    return contextDocs;
   } catch (error) {
-    console.error('Error in getCompanyDocuments:', error);
-    return 'Erro ao acessar documentos da empresa.';
+    console.error('Erro na busca de documentos:', error);
+    return 'Erro ao processar documentos da empresa.';
   }
 }
 
@@ -56,20 +98,24 @@ serve(async (req) => {
 
   try {
     if (!openAIApiKey) {
+      console.error('OPENAI_API_KEY não configurada');
       throw new Error('OpenAI API key não configurada');
     }
 
-    const { message } = await req.json();
+    const requestBody = await req.json();
+    const { message } = requestBody;
 
     if (!message) {
       throw new Error('Mensagem é obrigatória');
     }
 
-    console.log('Enviando mensagem para OpenAI:', message);
+    console.log('=== NOVA CONSULTA ===');
+    console.log('Mensagem recebida:', message);
 
-    // Get company documents for context
-    const documentsContext = await getCompanyDocuments();
-    console.log('Contexto dos documentos obtido, enviando para OpenAI...');
+    // Buscar documentos relevantes usando RAG
+    const relevantContext = await searchRelevantDocuments(message);
+
+    console.log('Enviando consulta para OpenAI...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -84,40 +130,47 @@ serve(async (req) => {
             role: 'system',
             content: `Você é o MAX, assistente virtual da Fiscaltech. Sua função é:
 
-1. Ajudar funcionários com perguntas sobre procedimentos e processos da empresa
+1. Ajudar funcionários com perguntas sobre procedimentos, produtos e processos da empresa
 2. Fornecer informações baseadas EXCLUSIVAMENTE nos documentos oficiais da Fiscaltech
-3. Usar uma linguagem simples, humanizada e voltada ao público interno
+3. Usar linguagem simples, humanizada e voltada ao público interno
 4. Responder sempre em português brasileiro
 5. Ser cordial, profissional e prestativo
 
-IMPORTANTE: 
-- Você só pode responder com base nas informações dos documentos da empresa
-- Se não encontrar a informação nos documentos, informe que não possui essa informação
-- Sempre mantenha um tom profissional mas amigável
-- Cite quando possível a fonte da informação (nome do documento)
+INSTRUÇÕES CRÍTICAS:
+- Use APENAS as informações dos documentos fornecidos abaixo
+- Se não encontrar informação específica, diga claramente que não possui essa informação
+- Cite sempre o nome do documento quando fornecer informações
+- Seja específico e detalhado nas respostas técnicas
+- Se a pergunta não estiver relacionada aos documentos, redirecione educadamente
 
-Documentos da empresa disponíveis:
-${documentsContext}
+CONTEXTO DOS DOCUMENTOS DA EMPRESA:
+${relevantContext}
 
-Se não houver documentos carregados ou se a pergunta não estiver relacionada aos documentos, informe que você precisa de documentos da empresa para fornecer respostas precisas.`
+Responda com base nessas informações oficiais da Fiscaltech.`
           },
-          { role: 'user', content: message }
+          { 
+            role: 'user', 
+            content: message 
+          }
         ],
-        max_completion_tokens: 1000,
+        max_completion_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Erro na API OpenAI:', response.status, errorData);
-      throw new Error(`Erro na API OpenAI: ${response.status}`);
+      throw new Error(`Erro na API OpenAI: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('Resposta da OpenAI recebida');
+    console.log('Resposta da OpenAI recebida com sucesso');
     
     const aiResponse = data.choices[0].message.content;
     const tokensUsed = data.usage?.total_tokens || 0;
+
+    console.log(`Tokens utilizados: ${tokensUsed}`);
+    console.log('=== FIM DA CONSULTA ===');
 
     return new Response(JSON.stringify({ 
       response: aiResponse,

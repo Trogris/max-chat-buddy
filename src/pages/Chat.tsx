@@ -7,6 +7,17 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 import { 
   MessageSquare, 
   Send, 
@@ -14,7 +25,8 @@ import {
   Plus, 
   Trash2, 
   Settings,
-  Loader2 
+  Loader2,
+  Menu
 } from 'lucide-react';
 import maxAvatar from '@/assets/max-avatar.png';
 
@@ -41,7 +53,9 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const ensureUserProfile = async () => {
     if (!user) return;
@@ -381,74 +395,104 @@ export default function Chat() {
     return <Navigate to="/auth" replace />;
   }
 
-  return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className="w-80 bg-sidebar border-r flex flex-col">
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Max</h1>
-          </div>
-          <Button onClick={createNewConversation} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Conversa
-          </Button>
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-2 mb-4">
+          <MessageSquare className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold">Max</h1>
         </div>
+        <Button onClick={createNewConversation} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Conversa
+        </Button>
+      </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-2">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`p-3 rounded-lg cursor-pointer group hover:bg-sidebar-accent flex items-center justify-between ${
-                  currentConversation === conv.id ? 'bg-sidebar-accent' : ''
-                }`}
-                onClick={() => {
-                  setCurrentConversation(conv.id);
-                  loadMessages(conv.id);
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-2">
+          {conversations.map((conv) => (
+            <div
+              key={conv.id}
+              className={`p-3 rounded-lg cursor-pointer group hover:bg-sidebar-accent flex items-center justify-between ${
+                currentConversation === conv.id ? 'bg-sidebar-accent' : ''
+              }`}
+              onClick={() => {
+                setCurrentConversation(conv.id);
+                loadMessages(conv.id);
+                if (isMobile) setDrawerOpen(false);
+              }}
+            >
+              <span className="text-sm truncate flex-1">{conv.title}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(conv.id);
                 }}
               >
-                <span className="text-sm truncate flex-1">{conv.title}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-              {user.email?.charAt(0).toUpperCase()}
+                <Trash2 className="h-3 w-3" />
+              </Button>
             </div>
-            <span className="truncate flex-1">{user.email}</span>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+            {user.email?.charAt(0).toUpperCase()}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" asChild>
-              <a href="/admin">
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          <span className="truncate flex-1">{user.email}</span>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <a href="/admin">
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" onClick={signOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <div className="w-80 bg-sidebar border-r">
+          <SidebarContent />
+        </div>
+      )}
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {/* Mobile Header with Menu */}
+        {isMobile && (
+          <div className="flex items-center justify-between p-4 border-b bg-background">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold">Max</h1>
+            </div>
+            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="h-[80vh] bg-sidebar">
+                  <SidebarContent />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
+        )}
         {currentConversation ? (
           <>
             <ScrollArea className="flex-1 p-4">

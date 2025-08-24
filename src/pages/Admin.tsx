@@ -283,8 +283,8 @@ export default function Admin() {
       const picoHora = Object.entries(horaMap)
         .sort(([,a], [,b]) => b - a)[0]?.[0];
       const picoHorario = picoHora 
-        ? `${picoHora.padStart(2, '0')}:00-${(parseInt(picoHora) + 1).toString().padStart(2, '0')}:00`
-        : '14:00-15:00';
+        ? `${picoHora.toString().padStart(2, '0')}:00-${(parseInt(picoHora) + 1).toString().padStart(2, '0')}:00`
+        : 'N/A';
 
       // Usuario mais ativo (últimos 30 dias)
       const { data: conversasComUsuario } = await supabase

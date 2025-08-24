@@ -183,7 +183,7 @@ INSTRUÇÕES ADICIONAIS:
 
     // Extrair texto de forma resiliente (modelos novos podem variar o formato)
     const choice = data?.choices?.[0] ?? {};
-    const message = choice?.message ?? {};
+    const messageContent = choice?.message ?? {};
 
     function coerceToText(content: any): string {
       if (!content) return '';
@@ -210,11 +210,11 @@ INSTRUÇÕES ADICIONAIS:
       }
     }
 
-    let aiResponseText = coerceToText(message.content).trim();
+    let aiResponseText = coerceToText(messageContent.content).trim();
 
     if (!aiResponseText) {
       console.warn('OpenAI retornou conteúdo vazio. Dump parcial da escolha:',
-        JSON.stringify({ finish_reason: choice.finish_reason, messageKeys: Object.keys(message || {}) }).slice(0, 500)
+        JSON.stringify({ finish_reason: choice.finish_reason, messageKeys: Object.keys(messageContent || {}) }).slice(0, 500)
       );
       aiResponseText = 'Não encontrei informações suficientes para responder com precisão agora. Tente reformular a pergunta ou ser mais específico.';
     }

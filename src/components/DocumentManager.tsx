@@ -52,20 +52,89 @@ export default function DocumentManager() {
     }
   };
 
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === 'string') {
-          resolve(result);
-        } else {
-          resolve('');
-        }
-      };
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsText(file, 'UTF-8');
-    });
+  const processFile = async (file: File): Promise<string> => {
+    console.log(`Processando arquivo: ${file.name}, tipo: ${file.type}, tamanho: ${file.size}`);
+    
+    const extension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+    console.log(`Extensão detectada: ${extension}`);
+    
+    try {
+      // Para arquivos de texto simples (TXT, CSV)
+      if (['.txt', '.csv'].includes(extension)) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            console.log(`Conteúdo extraído (${extension}):`, result?.substring(0, 200) + '...');
+            resolve(result || '');
+          };
+          reader.onerror = () => reject(new Error(`Erro ao ler arquivo ${extension.toUpperCase()}`));
+          reader.readAsText(file, 'UTF-8');
+        });
+      }
+      
+      // Para arquivos Excel
+      if (['.xls', '.xlsx'].includes(extension)) {
+        const XLSX = await import('xlsx');
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target?.result as ArrayBuffer);
+              const workbook = XLSX.read(data, { type: 'array' });
+              let allText = '';
+              
+              workbook.SheetNames.forEach(sheetName => {
+                const worksheet = workbook.Sheets[sheetName];
+                const csvData = XLSX.utils.sheet_to_csv(worksheet);
+                allText += `\n--- ${sheetName} ---\n${csvData}\n`;
+              });
+              
+              console.log(`Conteúdo extraído (Excel):`, allText.substring(0, 200) + '...');
+              resolve(allText);
+            } catch (err) {
+              console.error('Erro ao processar Excel:', err);
+              reject(new Error('Erro ao processar planilha Excel'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Erro ao ler arquivo Excel'));
+          reader.readAsArrayBuffer(file);
+        });
+      }
+      
+      // Para arquivos Word
+      if (['.doc', '.docx'].includes(extension)) {
+        const mammoth = await import('mammoth');
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const arrayBuffer = e.target?.result as ArrayBuffer;
+              const result = await mammoth.extractRawText({ arrayBuffer });
+              console.log(`Conteúdo extraído (Word):`, result.value.substring(0, 200) + '...');
+              resolve(result.value);
+            } catch (err) {
+              console.error('Erro ao processar Word:', err);
+              reject(new Error('Erro ao processar documento Word'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Erro ao ler arquivo Word'));
+          reader.readAsArrayBuffer(file);
+        });
+      }
+      
+      // Para PDFs - extração simples de metadados
+      if (extension === '.pdf') {
+        console.log('PDF detectado - extraindo informações básicas');
+        return `Documento PDF: ${file.name}\nTamanho: ${Math.round(file.size / 1024)}KB\nTipo: Documento PDF\nNota: Para melhor indexação, converta o PDF para formato de texto ou Word.`;
+      }
+      
+      throw new Error(`Tipo de arquivo não suportado: ${extension}`);
+      
+    } catch (error) {
+      console.error(`Erro ao processar ${file.name}:`, error);
+      throw error;
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,8 +175,8 @@ export default function DocumentManager() {
       return;
     }
 
-    // Verificar tipos suportados
-    const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt'];
+    // Verificar tipos suportados (incluindo Word)
+    const allowedExts = ['.csv', '.xls', '.xlsx', '.pdf', '.txt', '.doc', '.docx'];
     const invalidFile = files.find(f => {
       const ext = '.' + (f.name.split('.').pop()?.toLowerCase() || '');
       return !allowedExts.includes(ext);
@@ -131,8 +200,8 @@ export default function DocumentManager() {
         try {
           console.log('Processando arquivo:', file.name);
           
-          // Ler conteúdo como texto simples por enquanto
-          const content = await readFileAsText(file);
+          // Processar arquivo usando a nova função
+          const content = await processFile(file);
           
           documentsToInsert.push({
             filename: file.name,
@@ -225,11 +294,11 @@ export default function DocumentManager() {
           <div className="text-center">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-4">
-              Até {MAX_FILES} arquivos • Total máx. {MAX_TOTAL_SIZE_MB}MB • CSV, XLS, XLSX, PDF, TXT
+              Até {MAX_FILES} arquivos • Total máx. {MAX_TOTAL_SIZE_MB}MB • CSV, XLS, XLSX, PDF, TXT, DOC, DOCX
             </p>
             <Input
               type="file"
-              accept=".csv,.xls,.xlsx,.pdf,.txt"
+              accept=".csv,.xls,.xlsx,.pdf,.txt,.doc,.docx"
               multiple
               onChange={handleFileUpload}
               disabled={uploading}

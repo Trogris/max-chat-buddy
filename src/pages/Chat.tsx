@@ -75,6 +75,14 @@ export default function Chat() {
     }
   }, [user]);
 
+  // Auto-select first conversation if none is selected
+  useEffect(() => {
+    if (conversations.length > 0 && !currentConversation) {
+      setCurrentConversation(conversations[0].id);
+      loadMessages(conversations[0].id);
+    }
+  }, [conversations, currentConversation]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

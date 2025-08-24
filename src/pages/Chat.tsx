@@ -256,16 +256,26 @@ export default function Chat() {
       if (aiError) throw aiError;
 
       // Normalize AI response shape
+      // If the Edge Function returned an error in the body, surface it
+      if (aiResponse && typeof aiResponse === 'object' && 'error' in aiResponse && (aiResponse as any).error) {
+        throw new Error((aiResponse as any).error);
+      }
+
       const answerText = (aiResponse && typeof aiResponse === 'object' && 'response' in aiResponse)
         ? (aiResponse as any).response
-        : (typeof aiResponse === 'string' ? aiResponse : null);
+        : (typeof aiResponse === 'string' ? aiResponse : (
+            aiResponse && typeof aiResponse === 'object' && 'generatedText' in aiResponse
+              ? (aiResponse as any).generatedText
+              : null
+          ));
+
       const tokensUsed = (aiResponse && typeof aiResponse === 'object' && 'tokens' in aiResponse)
         ? (aiResponse as any).tokens || 0
         : 0;
 
       if (!answerText) {
         console.warn('AI returned unexpected payload:', aiResponse);
-        const fallback = 'Não consegui gerar uma resposta agora. Verifique se a OPENAI_API_KEY está configurada e tente novamente.';
+        const fallback = 'Não consegui gerar uma resposta agora. Tente novamente em instantes.';
         // Show fallback to the user
         const aiMessage: Message = {
           id: Math.random().toString(),
@@ -296,11 +306,11 @@ export default function Chat() {
         // Even if DB save fails, show the message to user
         const aiMessage: Message = {
           id: Math.random().toString(),
-          content: aiResponse.response,
+          content: answerText,
           role: 'assistant',
           created_at: new Date().toISOString(),
           conversation_id: currentConversation,
-          tokens: aiResponse.tokens || 0
+          tokens: tokensUsed
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {
@@ -318,7 +328,7 @@ export default function Chat() {
       }
 
       // Update session stats
-      await updateSessionStats(messages.length + 2, aiResponse.tokens || 0);
+      await updateSessionStats(messages.length + 2, tokensUsed);
 
     } catch (error: any) {
       console.error('Erro completo:', error);

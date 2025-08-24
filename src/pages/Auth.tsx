@@ -43,14 +43,14 @@ export default function Auth() {
             <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
               <img 
                 src={maxAvatar} 
-                alt="Max - Assistente Virtual da Fiscaltech" 
+                alt="Max - Seu Assistente Virtual na Fiscaltech" 
                 className="w-full h-full object-cover"
               />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Max</CardTitle>
           <CardDescription>
-            Assistente Virtual da Fiscaltech
+            Seu Assistente Virtual na Fiscaltech
           </CardDescription>
         </CardHeader>
         <CardContent>

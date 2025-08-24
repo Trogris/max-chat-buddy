@@ -76,10 +76,15 @@ async function searchRelevantDocuments(userQuery: string) {
       return `Não encontrei informações específicas sobre "${userQuery}" nos documentos carregados. Os documentos disponíveis são: ${allDocs.map(d => d.filename).join(', ')}. Tente reformular sua pergunta ou seja mais específico.`;
     }
 
-    // Formatar contexto dos documentos mais relevantes
-    const contextDocs = relevantDocs.map(doc => 
-      `=== DOCUMENTO: ${doc.filename} (Relevância: ${doc.score}) ===\n${doc.content}\n=== FIM DO DOCUMENTO ===\n`
-    ).join('\n');
+    // Formatar contexto dos documentos mais relevantes (com limite de caracteres)
+    const contextDocs = relevantDocs.map(doc => {
+      // Limitar cada documento a 8000 caracteres para evitar overflow
+      const truncatedContent = doc.content.length > 8000 
+        ? doc.content.substring(0, 8000) + '\n[... documento truncado para otimizar resposta ...]'
+        : doc.content;
+      
+      return `=== DOCUMENTO: ${doc.filename} (Relevância: ${doc.score}) ===\n${truncatedContent}\n=== FIM DO DOCUMENTO ===\n`;
+    }).join('\n');
 
     console.log(`Contexto preparado com ${contextDocs.length} caracteres de ${relevantDocs.length} documentos`);
     
@@ -168,7 +173,7 @@ INSTRUÇÕES ADICIONAIS:
       body: JSON.stringify({
         model: 'gpt-5-2025-08-07',
         messages: messages,
-        max_completion_tokens: 1500,
+        max_completion_tokens: 4000,
       }),
     });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -448,10 +448,10 @@ export default function Chat() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1" asChild>
-            <a href="/admin">
+            <Link to="/admin">
               <Settings className="h-4 w-4 mr-2" />
               Admin
-            </a>
+            </Link>
           </Button>
           <Button variant="outline" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4" />

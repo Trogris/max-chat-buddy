@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -408,10 +409,10 @@ export default function Admin() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <a href="/chat">
+                <Link to="/chat">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar ao Chat
-                </a>
+                </Link>
               </Button>
               <h1 className="text-2xl font-bold">Painel Administrativo</h1>
             </div>

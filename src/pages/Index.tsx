@@ -1,5 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Users, BarChart3, Shield } from 'lucide-react';
 import maxAvatar from '@/assets/max-avatar.png';
@@ -38,7 +38,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
-              <a href="/auth">Acessar o Sistema</a>
+              <Link to="/auth">Acessar o Sistema</Link>
             </Button>
           </div>
         </div>

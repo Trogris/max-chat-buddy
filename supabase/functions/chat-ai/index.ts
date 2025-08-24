@@ -15,6 +15,7 @@ const corsHeaders = {
 
 async function getCompanyDocuments() {
   try {
+    console.log('Buscando documentos da empresa...');
     const { data, error } = await supabase
       .from('company_documents')
       .select('filename, content')
@@ -26,13 +27,19 @@ async function getCompanyDocuments() {
     }
 
     if (!data || data.length === 0) {
+      console.log('Nenhum documento encontrado no banco');
       return 'Nenhum documento da empresa foi carregado ainda. Por favor, peça ao administrador para carregar os documentos oficiais.';
     }
 
-    // Format documents for context
+    console.log(`Encontrados ${data.length} documentos:`, data.map(d => d.filename));
+
+    // Format documents for context with better formatting
     const formattedDocs = data.map(doc => 
-      `=== ${doc.filename} ===\n${doc.content}\n`
+      `=== DOCUMENTO: ${doc.filename} ===\n${doc.content}\n=== FIM DO DOCUMENTO ===\n`
     ).join('\n');
+
+    const totalChars = formattedDocs.length;
+    console.log(`Contexto formatado com ${totalChars} caracteres`);
 
     return formattedDocs;
   } catch (error) {
@@ -62,6 +69,7 @@ serve(async (req) => {
 
     // Get company documents for context
     const documentsContext = await getCompanyDocuments();
+    console.log('Contexto dos documentos obtido, enviando para OpenAI...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

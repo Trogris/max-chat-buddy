@@ -102,10 +102,45 @@ export default function DocumentManager() {
         });
       }
       
-      // Para PDFs - extração simples de metadados por enquanto
+      // Para PDFs - extração de texto com pdfjs-dist
       if (extension === '.pdf') {
-        console.log('PDF detectado - extraindo informações básicas');
-        return `Documento PDF: ${file.name}\nTamanho: ${Math.round(file.size / 1024)}KB\nTipo: Documento PDF\nNota: Para melhor indexação, converta o PDF para formato de texto.`;
+        console.log('PDF detectado - extraindo texto com pdfjs');
+        const pdfjsLib: any = await import('pdfjs-dist');
+        // Define o worker do PDF.js dinamicamente para funcionar no Vite
+        const workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default as string;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const arrayBuffer = e.target?.result as ArrayBuffer;
+              const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+              const pdf = await loadingTask.promise;
+
+              const maxPages = Math.min(pdf.numPages, 50);
+              let fullText = `PDF: ${file.name} | Páginas: ${pdf.numPages}\n\n`;
+
+              for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items
+                  .map((item: any) => ('str' in item ? item.str : ''))
+                  .join(' ');
+                fullText += `\n--- Página ${pageNum} ---\n${pageText}\n`;
+                if (fullText.length > 200000) break; // trava de segurança
+              }
+
+              console.log('Texto extraído (PDF):', fullText.substring(0, 200) + '...');
+              resolve(fullText);
+            } catch (err) {
+              console.error('Erro ao processar PDF:', err);
+              reject(new Error('Erro ao extrair texto do PDF'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Erro ao ler arquivo PDF'));
+          reader.readAsArrayBuffer(file);
+        });
       }
       
       throw new Error(`Tipo de arquivo não suportado: ${extension}`);

@@ -17,28 +17,46 @@ export type Database = {
       company_documents: {
         Row: {
           content: string
+          content_hash: string | null
           created_at: string
           file_type: string
           filename: string
           id: string
+          mime_type: string | null
+          pages: number | null
+          sheets: Json | null
+          size_bytes: number | null
+          truncated: boolean | null
           updated_at: string
           uploaded_by: string
         }
         Insert: {
           content: string
+          content_hash?: string | null
           created_at?: string
           file_type: string
           filename: string
           id?: string
+          mime_type?: string | null
+          pages?: number | null
+          sheets?: Json | null
+          size_bytes?: number | null
+          truncated?: boolean | null
           updated_at?: string
           uploaded_by: string
         }
         Update: {
           content?: string
+          content_hash?: string | null
           created_at?: string
           file_type?: string
           filename?: string
           id?: string
+          mime_type?: string | null
+          pages?: number | null
+          sheets?: Json | null
+          size_bytes?: number | null
+          truncated?: boolean | null
           updated_at?: string
           uploaded_by?: string
         }

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Upload, Trash2, FileText, Loader2 } from 'lucide-react';
+import { Upload, Trash2, FileText, Loader2, FolderOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -70,10 +70,9 @@ export default function DocumentManager() {
   };
 
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    
-    if (!user || files.length === 0) return;
+  // Função reutilizável para processar e inserir arquivos
+  const processAndInsert = async (files: File[]) => {
+    if (!user || files.length === 0) return { inserted: 0, failed: 0 };
 
     // Validações básicas
     if (files.length > MAX_FILES) {
@@ -82,7 +81,7 @@ export default function DocumentManager() {
         description: `Máximo ${MAX_FILES} arquivos por vez.`,
         variant: "destructive",
       });
-      return;
+      return { inserted: 0, failed: files.length };
     }
 
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
@@ -93,7 +92,7 @@ export default function DocumentManager() {
         description: `Tamanho total máximo: ${MAX_TOTAL_SIZE_MB}MB. Atual: ${totalSizeMB.toFixed(1)}MB`,
         variant: "destructive",
       });
-      return;
+      return { inserted: 0, failed: files.length };
     }
 
     const oversizedFile = files.find(file => file.size > MAX_FILE_SIZE_MB * 1024 * 1024);
@@ -103,16 +102,15 @@ export default function DocumentManager() {
         description: `${oversizedFile.name} excede ${MAX_FILE_SIZE_MB}MB`,
         variant: "destructive",
       });
-      return;
+      return { inserted: 0, failed: files.length };
     }
 
     const invalid = files.find(f => !allowedExts.includes(toExt(f.name)));
     if (invalid) {
       toast({ title: 'Tipo não suportado', description: invalid.name, variant: 'destructive' });
-      return;
+      return { inserted: 0, failed: files.length };
     }
 
-    setUploading(true);
     try {
       // Processamento em paralelo
       const results = await Promise.allSettled(files.map(async (file) => {
@@ -138,14 +136,11 @@ export default function DocumentManager() {
       const failures = results.filter(r => r.status === 'rejected');
       
       if (failures.length) {
-        toast({ title: 'Alguns arquivos falharam', description: `${failures.length} falha(s)`, variant: 'destructive' });
         console.warn('Falhas:', failures);
       }
 
       if (successes.length === 0) {
-        toast({ title: 'Nada a enviar', description: 'Nenhum arquivo válido.' });
-        event.target.value = '';
-        return;
+        return { inserted: 0, failed: failures.length };
       }
 
       // Deduplicação pelo hash
@@ -160,9 +155,7 @@ export default function DocumentManager() {
       const toInsert = successes.filter(s => !existingSet.has(s.content_hash));
 
       if (toInsert.length === 0) {
-        toast({ title: 'Nenhuma novidade', description: 'Todos já estavam no banco.' });
-        event.target.value = '';
-        return;
+        return { inserted: 0, failed: failures.length, duplicates: successes.length };
       }
 
       // Inserir em lotes
@@ -174,12 +167,133 @@ export default function DocumentManager() {
         inserted += chunk.length;
       }
 
-      toast({ title: 'Upload concluído', description: `${inserted} arquivo(s) inserido(s).` });
-      await loadDocuments();
+      return { inserted, failed: failures.length, duplicates: successes.length - toInsert.length };
+    } catch (err: any) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    if (!user || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const result = await processAndInsert(files);
+      
+      if (result.failed > 0) {
+        toast({ title: 'Alguns arquivos falharam', description: `${result.failed} falha(s)`, variant: 'destructive' });
+      }
+      
+      if (result.duplicates && result.duplicates > 0) {
+        toast({ title: 'Arquivos duplicados', description: `${result.duplicates} já existiam no banco.` });
+      }
+      
+      if (result.inserted > 0) {
+        toast({ title: 'Upload concluído', description: `${result.inserted} arquivo(s) inserido(s).` });
+        await loadDocuments();
+      } else if (result.failed === 0 && result.duplicates === 0) {
+        toast({ title: 'Nada a enviar', description: 'Nenhum arquivo válido.' });
+      }
+      
       event.target.value = '';
     } catch (err: any) {
       console.error(err);
       toast({ title: 'Erro no upload', description: err?.message || 'Erro desconhecido', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImportFolder = async () => {
+    if (!user) return;
+
+    // Verificar suporte à API
+    if (!('showDirectoryPicker' in window)) {
+      toast({
+        title: "Funcionalidade não disponível",
+        description: "Use o botão 'Selecionar arquivos' e selecione todos os documentos da pasta manualmente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      
+      // @ts-ignore - showDirectoryPicker é experimental
+      const directoryHandle = await window.showDirectoryPicker();
+      
+      const files: File[] = [];
+      const collectFiles = async (dirHandle: any, path = '') => {
+        for await (const entry of dirHandle.values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            const ext = toExt(file.name);
+            if (allowedExts.includes(ext)) {
+              files.push(file);
+            }
+          } else if (entry.kind === 'directory') {
+            await collectFiles(entry, `${path}/${entry.name}`);
+          }
+        }
+      };
+
+      await collectFiles(directoryHandle);
+      
+      if (files.length === 0) {
+        toast({
+          title: "Nenhum arquivo encontrado",
+          description: "A pasta não contém arquivos nos formatos suportados.",
+        });
+        return;
+      }
+
+      // Processar arquivos em lotes
+      let totalInserted = 0;
+      let totalFailed = 0;
+      let totalDuplicates = 0;
+      
+      for (let i = 0; i < files.length; i += MAX_FILES) {
+        const batch = files.slice(i, i + MAX_FILES);
+        const result = await processAndInsert(batch);
+        totalInserted += result.inserted;
+        totalFailed += result.failed;
+        totalDuplicates += result.duplicates || 0;
+      }
+
+      // Relatório final
+      let message = '';
+      if (totalInserted > 0) message += `${totalInserted} inseridos`;
+      if (totalDuplicates > 0) message += `${message ? ', ' : ''}${totalDuplicates} duplicados`;
+      if (totalFailed > 0) message += `${message ? ', ' : ''}${totalFailed} falharam`;
+      
+      toast({
+        title: "Importação da pasta concluída",
+        description: message || 'Nenhum arquivo processado',
+        variant: totalInserted > 0 ? "default" : "destructive",
+      });
+
+      if (totalInserted > 0) {
+        await loadDocuments();
+      }
+      
+    } catch (err: any) {
+      console.error(err);
+      if (err.name === 'AbortError') {
+        toast({
+          title: "Importação cancelada",
+          description: "Operação cancelada pelo usuário.",
+        });
+      } else {
+        toast({
+          title: "Erro na importação",
+          description: err?.message || 'Erro desconhecido',
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
     }
@@ -231,14 +345,25 @@ export default function DocumentManager() {
             <p className="text-sm text-muted-foreground mb-4">
               Máximo: {MAX_FILES} arquivos, {MAX_TOTAL_SIZE_MB}MB total • Deduplicação automática
             </p>
-            <Input
-              type="file"
-              accept=".csv,.xls,.xlsx,.pdf,.txt,.docx"
-              multiple
-              onChange={handleFileUpload}
-              disabled={uploading}
-              className="max-w-xs mx-auto"
-            />
+            <div className="flex gap-2 items-center justify-center">
+              <Input
+                type="file"
+                accept=".csv,.xls,.xlsx,.pdf,.txt,.docx"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="max-w-xs"
+              />
+              <Button
+                variant="outline"
+                onClick={handleImportFolder}
+                disabled={uploading}
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Importar pasta
+              </Button>
+            </div>
             {uploading && (
               <div className="flex items-center justify-center gap-2 mt-2">
                 <Loader2 className="h-4 w-4 animate-spin" />

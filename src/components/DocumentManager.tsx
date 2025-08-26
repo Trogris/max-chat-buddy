@@ -223,8 +223,22 @@ export default function DocumentManager() {
     try {
       setUploading(true);
       
-      // @ts-ignore - showDirectoryPicker é experimental
-      const directoryHandle = await window.showDirectoryPicker();
+      let directoryHandle: any;
+      try {
+        // @ts-ignore - showDirectoryPicker é experimental
+        directoryHandle = await window.showDirectoryPicker();
+      } catch (apiError: any) {
+        // Erro específico de cross-origin em iframes
+        if (apiError.name === 'SecurityError' || apiError.message?.includes('Cross origin')) {
+          toast({
+            title: "Funcionalidade não disponível neste ambiente",
+            description: "Use o botão 'Selecionar arquivos' e selecione múltiplos arquivos com Ctrl+A ou Ctrl+Click.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw apiError;
+      }
       
       const files: File[] = [];
       const collectFiles = async (dirHandle: any, path = '') => {

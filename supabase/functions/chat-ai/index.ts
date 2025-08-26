@@ -13,6 +13,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helpers de normalização e tokenização
+const STOPWORDS = new Set(['que','como','para','por','com','sem','sob','sobre','qual','onde','quando','fale','me','do','da','de','em','no','na','os','as','uma','um','quais','você','voce','sua','seu','minha','meu','tem','há','ha']);
+const normalize = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const tokenize = (s: string) => normalize(s).split(/[^a-z0-9]+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
+
 // Função para buscar documentos relevantes baseado na consulta do usuário
 async function searchRelevantDocuments(userQuery: string) {
   try {
@@ -36,29 +41,29 @@ async function searchRelevantDocuments(userQuery: string) {
 
     console.log(`Encontrados ${allDocs.length} documentos para análise`);
 
-    // Palavras-chave da consulta do usuário
-    const queryWords = userQuery.toLowerCase()
-      .split(/\s+/)
-      .filter(word => word.length > 2)
-      .filter(word => !['que', 'como', 'para', 'por', 'com', 'sem', 'sob', 'sobre', 'qual', 'onde', 'quando', 'fale', 'me', 'do', 'da', 'de', 'em', 'no', 'na'].includes(word));
+    // Tokens da consulta do usuário (normalizados)
+    const queryTokens = tokenize(userQuery);
+    console.log('Tokens extraídos da consulta:', queryTokens);
 
-    console.log('Palavras-chave extraídas:', queryWords);
-
-    // Calcular relevância de cada documento
+    // Calcular relevância de cada documento (com boost para o nome do arquivo)
     const docsWithScore = allDocs.map(doc => {
-      const content = doc.content.toLowerCase();
+      const filenameNorm = normalize(doc.filename || '');
+      const contentNorm = normalize(doc.content || '');
       let score = 0;
-      
-      // Contagem de palavras-chave encontradas
-      queryWords.forEach(word => {
-        const regex = new RegExp(`\\b${word}\\b`, 'gi');
-        const matches = content.match(regex) || [];
-        score += matches.length * 10; // Peso para correspondências exatas
-        
-        // Busca por palavras parciais (maior flexibilidade)
-        if (content.includes(word)) {
-          score += 5;
-        }
+
+      queryTokens.forEach(tok => {
+        // Correspondências exatas por palavra (conteúdo)
+        const wordRegex = new RegExp(`\\b${tok}\\b`, 'g');
+        const matchesContent = contentNorm.match(wordRegex) || [];
+        score += matchesContent.length * 10; // peso para conteúdo
+
+        // Correspondência parcial no conteúdo
+        if (contentNorm.includes(tok)) score += 5;
+
+        // Boost forte se aparecer no nome do arquivo
+        const matchesFile = filenameNorm.match(wordRegex) || [];
+        score += matchesFile.length * 30; // título pesa mais
+        if (filenameNorm.includes(tok)) score += 10;
       });
 
       return { ...doc, score };
@@ -68,7 +73,7 @@ async function searchRelevantDocuments(userQuery: string) {
     const relevantDocs = docsWithScore
       .filter(doc => doc.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 3); // Máximo 3 documentos (otimizado para velocidade)
+      .slice(0, 5); // até 5 documentos
 
     console.log('Documentos relevantes encontrados:', relevantDocs.map(d => ({ filename: d.filename, score: d.score })));
 
@@ -117,6 +122,29 @@ serve(async (req) => {
     console.log('=== NOVA CONSULTA ===');
     console.log('Mensagem recebida:', message);
     console.log('Histórico de conversação:', conversationHistory.length, 'mensagens');
+
+    // Intenção: listar documentos disponíveis (responde sem chamar OpenAI)
+    const msgNorm = normalize(message);
+    const listIntent = /(quais|listar|liste|que).*documentos/.test(msgNorm) || /(base|banco).*documento/.test(msgNorm);
+    if (listIntent) {
+      console.log('Intenção detectada: listar documentos');
+      const { data: docs, error: docsError } = await supabase
+        .from('company_documents')
+        .select('filename, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (docsError) {
+        console.error('Erro ao listar documentos:', docsError);
+        return new Response(JSON.stringify({ response: 'Não consegui listar os documentos agora. Tente novamente em instantes.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const list = (docs || []).map((d: any, i: number) => `${i + 1}. ${d.filename}`).join('\n') || 'Nenhum documento encontrado.';
+      const text = `Atualmente, tenho acesso aos seguintes documentos na base:\n\n${list}\n\nSe quiser, posso buscar informações específicas em algum deles.`;
+      return new Response(JSON.stringify({ response: text, tokens: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Buscar documentos relevantes usando RAG
     const relevantContext = await searchRelevantDocuments(message);

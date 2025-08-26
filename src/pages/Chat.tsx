@@ -29,6 +29,7 @@ import {
   Menu
 } from 'lucide-react';
 import maxAvatar from '@/assets/max-avatar.png';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Message {
   id: string;
@@ -56,6 +57,9 @@ export default function Chat() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
+  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
+  const [showPreviewNotice, setShowPreviewNotice] = useState(false);
 
   const ensureUserProfile = async () => {
     if (!user) return;
@@ -100,6 +104,14 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    try {
+      setShowPreviewNotice(window.self !== window.top);
+    } catch {
+      setShowPreviewNotice(false);
+    }
+  }, []);
 
   const trackSession = async () => {
     if (!user) return;
@@ -146,7 +158,9 @@ export default function Chat() {
       
       if (error) throw error;
       setConversations(data || []);
+      setSupabaseOk(true);
     } catch (error) {
+      setSupabaseOk(false);
       toast({
         title: "Erro ao carregar conversas",
         description: "Não foi possível carregar o histórico.",
@@ -276,6 +290,7 @@ export default function Chat() {
       console.log('Resposta da AI:', aiResponse, aiError);
 
       if (aiError) throw aiError;
+      setEdgeOk(true);
 
       // Normalize AI response shape
       // If the Edge Function returned an error in the body, surface it
@@ -354,6 +369,7 @@ export default function Chat() {
 
     } catch (error: any) {
       console.error('Erro completo:', error);
+      setEdgeOk(false);
       
       // Show error message in chat
       const errorMessage: Message = {
@@ -492,8 +508,30 @@ export default function Chat() {
               </DrawerContent>
             </Drawer>
           </div>
-        )}
-        {currentConversation ? (
+          )}
+          {showPreviewNotice && (
+            <div className="p-3 border-b">
+              <Alert>
+                <AlertDescription>
+                  Este preview pode exibir avisos de sandbox (ex.: 400 do Firestore, "vr"). Eles não afetam seu app.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          <div className="px-4 py-2 border-b text-xs text-muted-foreground flex items-center gap-4">
+            <span>
+              Supabase: <span className={supabaseOk ? 'text-primary' : (supabaseOk === false ? 'text-destructive' : '')}>
+                {supabaseOk ? 'OK' : (supabaseOk === false ? 'Falha' : '...')}
+              </span>
+            </span>
+            <span>
+              Edge: <span className={edgeOk ? 'text-primary' : (edgeOk === false ? 'text-destructive' : '')}>
+                {edgeOk ? 'OK' : (edgeOk === false ? 'Falha' : '...')}
+              </span>
+            </span>
+          </div>
+          {currentConversation ? (
+
           <>
             <ScrollArea className="flex-1 p-4">
               <div className="max-w-4xl mx-auto space-y-4">

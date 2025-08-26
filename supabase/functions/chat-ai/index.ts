@@ -18,6 +18,20 @@ const STOPWORDS = new Set(['que','como','para','por','com','sem','sob','sobre','
 const normalize = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const tokenize = (s: string) => normalize(s).split(/[^a-z0-9]+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
 
+// Helper para extrair emojis de um texto (evita repetição)
+function extractEmojis(text: string): string[] {
+  if (!text) return [];
+  try {
+    const regex = /\p{Extended_Pictographic}/gu;
+    const matches = text.match(regex) || [];
+    return Array.from(new Set(matches)).slice(0, 20);
+  } catch {
+    const fallbackRegex = /[\u231A-\uD83E\uDDFF]/g;
+    const matches = text.match(fallbackRegex) || [];
+    return Array.from(new Set(matches)).slice(0, 20);
+  }
+}
+
 // Função para buscar documentos relevantes baseado na consulta do usuário
 async function searchRelevantDocuments(userQuery: string) {
   try {
@@ -158,7 +172,7 @@ Oferecer suporte confiável, rápido e direto sobre processos, condutas, políti
 
 SAUDAÇÃO PADRÃO:
 - Para usuários em geral: "Olá! Eu sou o Max, seu assistente virtual na Fiscaltech. Como posso te ajudar?"
-- Para usuários novos: "Você é novo na empresa ou está começando em alguma área específica? Assim eu consigo te orientar melhor 😊"
+- Para usuários novos: "Você é novo na empresa ou está começando em alguma área específica? Assim eu consigo te orientar melhor" (use no máximo 1 emoji variando entre 🙂, 👋, 😊)
 
 REGRAS OBRIGATÓRIAS:
 1. Use EXCLUSIVAMENTE os documentos oficiais fornecidos abaixo - NUNCA invente informações
@@ -183,7 +197,9 @@ ${relevantContext}
 INSTRUÇÕES TÉCNICAS:
 - Responda sempre em português brasileiro
 - Substitua $ por S em suas respostas
-- Use até 2 emojis quando apropriado
+- Use emojis com moderação (máx. 2) e de forma contextual
+- Varie os emojis e evite repetir o mesmo emoji em respostas consecutivas
+- Prefira 🙂, 👋, 😊, 👍, ✅, 📝, 📄, ℹ️, 🛠️ quando fizer sentido
 - Seja conciso mas completo (3-6 frases quando possível)
 - Se documento tiver problemas técnicos, informe que precisa ser recarregado`;
 
@@ -197,6 +213,18 @@ INSTRUÇÕES TÉCNICAS:
     const recentHistory = conversationHistory.slice(-10);
     messages.push(...recentHistory);
 
+    // Evitar repetição de emojis usados na última resposta do assistente
+    const lastAssistant: any = [...recentHistory].reverse().find((m: any) => m.role === 'assistant');
+    const lastEmojis = lastAssistant ? extractEmojis(lastAssistant.content || '') : [];
+    if (lastEmojis.length > 0) {
+      const avoidList = lastEmojis.join(' ');
+      messages.push({
+        role: 'system',
+        content: `Não use estes emojis nesta resposta: ${avoidList}. Varie, e se for usar emojis, escolha outros que façam sentido (máx. 2).`
+      });
+      console.log('Evitando emojis desta resposta:', avoidList);
+    }
+    
     // Adicionar mensagem atual
     messages.push({ role: 'user', content: message });
 
@@ -212,7 +240,7 @@ INSTRUÇÕES TÉCNICAS:
         model: 'gpt-4o-mini',
         messages,
         max_tokens: 500,
-        temperature: 0.4,
+        temperature: 0.65,
       }),
     });
 

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Upload, Trash2, FileText, Loader2, Download } from 'lucide-react';
+import { Upload, Trash2, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -209,54 +209,6 @@ export default function DocumentManager() {
     }
   };
 
-  const downloadDocument = async (documentId: string, filename: string, fileType: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('company_documents')
-        .select('content, mime_type')
-        .eq('id', documentId)
-        .single();
-
-      if (error) throw error;
-
-      if (!data?.content) {
-        toast({
-          title: "Erro no download",
-          description: "Conteúdo do documento não encontrado.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Criar blob com o conteúdo
-      const blob = new Blob([data.content], { 
-        type: data.mime_type || 'text/plain' 
-      });
-      
-      // Criar URL temporária e fazer download
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Limpar recursos
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download concluído",
-        description: `${filename} foi baixado com sucesso.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro no download",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <Card>
@@ -329,26 +281,14 @@ export default function DocumentManager() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => downloadDocument(doc.id, doc.filename, doc.file_type)}
-                      className="flex-shrink-0"
-                      title="Baixar documento"
-                    >
-                      <Download className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteDocument(doc.id)}
-                      className="flex-shrink-0"
-                      title="Remover documento"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => deleteDocument(doc.id)}
+                    className="flex-shrink-0"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
             </div>

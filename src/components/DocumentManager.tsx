@@ -246,16 +246,23 @@ export default function DocumentManager() {
           if (entry.kind === 'file') {
             const file = await entry.getFile();
             const ext = toExt(file.name);
+            console.log('Arquivo encontrado:', file.name, 'Extensão:', ext, 'Suportado:', allowedExts.includes(ext));
             if (allowedExts.includes(ext)) {
               files.push(file);
+              console.log('Arquivo adicionado:', file.name);
+            } else {
+              console.log('Arquivo ignorado (extensão não suportada):', file.name);
             }
           } else if (entry.kind === 'directory') {
+            console.log('Entrando na pasta:', entry.name);
             await collectFiles(entry, `${path}/${entry.name}`);
           }
         }
       };
 
+      console.log('Iniciando coleta de arquivos da pasta...');
       await collectFiles(directoryHandle);
+      console.log('Total de arquivos coletados:', files.length);
       
       if (files.length === 0) {
         toast({

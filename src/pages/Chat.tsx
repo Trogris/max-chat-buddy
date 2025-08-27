@@ -3,21 +3,23 @@ import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer';
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarFooter,
+  SidebarInset,
+} from '@/components/ui/sidebar';
 import { 
   MessageSquare, 
   Send, 
@@ -25,11 +27,9 @@ import {
   Plus, 
   Trash2, 
   Settings,
-  Loader2,
-  Menu
+  Loader2
 } from 'lucide-react';
 import maxAvatar from '@/assets/max-avatar.png';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Message {
   id: string;
@@ -46,6 +46,90 @@ interface Conversation {
   created_at: string;
 }
 
+function AppSidebar({ 
+  conversations, 
+  currentConversation, 
+  onConversationSelect, 
+  onNewConversation, 
+  onDeleteConversation,
+  user,
+  signOut 
+}: {
+  conversations: Conversation[];
+  currentConversation: string | null;
+  onConversationSelect: (id: string) => void;
+  onNewConversation: () => void;
+  onDeleteConversation: (id: string) => void;
+  user: any;
+  signOut: () => void;
+}) {
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2 mb-4">
+          <MessageSquare className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold">Max</h1>
+        </div>
+        <Button onClick={onNewConversation} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Conversa
+        </Button>
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {conversations.map((conv) => (
+                <SidebarMenuItem key={conv.id}>
+                  <SidebarMenuButton
+                    isActive={currentConversation === conv.id}
+                    onClick={() => onConversationSelect(conv.id)}
+                    className="group flex items-center justify-between w-full"
+                  >
+                    <span className="text-sm truncate flex-1">{conv.title}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteConversation(conv.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+            {user?.email?.charAt(0).toUpperCase()}
+          </div>
+          <span className="truncate flex-1">{user?.email}</span>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Link to="/admin">
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" onClick={signOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
 export default function Chat() {
   const { user, signOut, loading: authLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -54,12 +138,9 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
   const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
-  const [showPreviewNotice, setShowPreviewNotice] = useState(false);
 
   const ensureUserProfile = async () => {
     if (!user) return;
@@ -104,14 +185,6 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  useEffect(() => {
-    try {
-      setShowPreviewNotice(window.self !== window.top);
-    } catch {
-      setShowPreviewNotice(false);
-    }
-  }, []);
 
   const trackSession = async () => {
     if (!user) return;
@@ -411,137 +484,77 @@ export default function Chat() {
     return <Navigate to="/auth" replace />;
   }
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">Max</h1>
-        </div>
-        <Button onClick={createNewConversation} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Conversa
-        </Button>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className={`p-3 rounded-lg cursor-pointer group hover:bg-sidebar-accent flex items-center justify-between ${
-                currentConversation === conv.id ? 'bg-sidebar-accent' : ''
-              }`}
-              onClick={() => {
-                setCurrentConversation(conv.id);
-                loadMessages(conv.id);
-                if (isMobile) setDrawerOpen(false);
-              }}
-            >
-              <span className="text-sm truncate flex-1">{conv.title}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteConversation(conv.id);
-                }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-
-      <div className="p-4 border-t">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            {user.email?.charAt(0).toUpperCase()}
-          </div>
-          <span className="truncate flex-1">{user.email}</span>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <Link to="/admin">
-              <Settings className="h-4 w-4 mr-2" />
-              Admin
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex h-screen bg-background">
-      {/* Desktop Sidebar */}
-      {!isMobile && (
-        <div className="w-80 bg-sidebar border-r">
-          <SidebarContent />
-        </div>
-      )}
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Mobile Header with Menu */}
-        {isMobile && (
-          <div className="flex items-center justify-between p-4 border-b bg-background">
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar
+          conversations={conversations}
+          currentConversation={currentConversation}
+          onConversationSelect={(id) => {
+            setCurrentConversation(id);
+            loadMessages(id);
+          }}
+          onNewConversation={createNewConversation}
+          onDeleteConversation={deleteConversation}
+          user={user}
+          signOut={signOut}
+        />
+        
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
             <div className="flex items-center gap-2">
               <MessageSquare className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold">Max</h1>
             </div>
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-              <DrawerTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="h-[80vh] bg-sidebar">
-                  <SidebarContent />
-                </div>
-              </DrawerContent>
-            </Drawer>
-          </div>
-          )}
-          {showPreviewNotice && (
-            <div className="p-3 border-b">
-              <Alert>
-                <AlertDescription>
-                  Este preview pode exibir avisos de sandbox (ex.: 400 do Firestore, "vr"). Eles não afetam seu app.
-                </AlertDescription>
-              </Alert>
+            <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
+              <span>
+                Supabase: <span className={supabaseOk ? 'text-primary' : (supabaseOk === false ? 'text-destructive' : '')}>
+                  {supabaseOk ? 'OK' : (supabaseOk === false ? 'Falha' : '...')}
+                </span>
+              </span>
+              <span>
+                Edge: <span className={edgeOk ? 'text-primary' : (edgeOk === false ? 'text-destructive' : '')}>
+                  {edgeOk ? 'OK' : (edgeOk === false ? 'Falha' : '...')}
+                </span>
+              </span>
             </div>
-          )}
-          <div className="px-4 py-2 border-b text-xs text-muted-foreground flex items-center gap-4">
-            <span>
-              Supabase: <span className={supabaseOk ? 'text-primary' : (supabaseOk === false ? 'text-destructive' : '')}>
-                {supabaseOk ? 'OK' : (supabaseOk === false ? 'Falha' : '...')}
-              </span>
-            </span>
-            <span>
-              Edge: <span className={edgeOk ? 'text-primary' : (edgeOk === false ? 'text-destructive' : '')}>
-                {edgeOk ? 'OK' : (edgeOk === false ? 'Falha' : '...')}
-              </span>
-            </span>
-          </div>
-          {currentConversation ? (
+          </header>
 
-          <>
-            <ScrollArea className="flex-1 p-4">
-              <div className="max-w-4xl mx-auto space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`flex gap-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      {message.role === 'assistant' && (
+          {currentConversation ? (
+            <div className="flex flex-1 flex-col">
+              <ScrollArea className="flex-1 p-4">
+                <div className="max-w-4xl mx-auto space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`flex gap-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        {message.role === 'assistant' && (
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                            <img 
+                              src={maxAvatar} 
+                              alt="Max" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div
+                          className={`p-4 rounded-lg ${
+                            message.role === 'user'
+                              ? 'bg-chat-user text-foreground'
+                              : 'bg-chat-assistant text-foreground border'
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {loading && (
+                    <div className="flex justify-start">
+                      <div className="flex gap-3 items-start">
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
                           <img 
                             src={maxAvatar} 
@@ -549,72 +562,50 @@ export default function Chat() {
                             className="w-full h-full object-cover"
                           />
                         </div>
-                      )}
-                      <div
-                        className={`p-4 rounded-lg ${
-                          message.role === 'user'
-                            ? 'bg-chat-user text-foreground'
-                            : 'bg-chat-assistant text-foreground border'
-                        }`}
-                      >
-                        <div className="whitespace-pre-wrap">{message.content}</div>
+                        <div className="bg-chat-assistant border p-4 rounded-lg flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Max está pensando...</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="flex gap-3 items-start">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                        <img 
-                          src={maxAvatar} 
-                          alt="Max" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="bg-chat-assistant border p-4 rounded-lg flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Max está pensando...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
 
-            <div className="p-3 sm:p-4 border-t bg-background/95 backdrop-blur-sm">
-              <div className="max-w-4xl mx-auto flex gap-2">
-                <Input
-                  placeholder="Digite sua mensagem para o Max..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={loading}
-                  className="flex-1 h-10 sm:h-10"
-                />
-                <Button 
-                  onClick={sendMessage} 
-                  disabled={loading || !inputValue.trim()}
-                  className="h-10 px-3 sm:px-4"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+              <div className="p-3 sm:p-4 border-t bg-background/95 backdrop-blur-sm">
+                <div className="max-w-4xl mx-auto flex gap-2">
+                  <Input
+                    placeholder="Digite sua mensagem para o Max..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={loading}
+                    className="flex-1 h-10 sm:h-10"
+                  />
+                  <Button 
+                    onClick={sendMessage} 
+                    disabled={loading || !inputValue.trim()}
+                    className="h-10 px-3 sm:px-4"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Max</h2>
-            <p className="text-muted-foreground">
-              Selecione uma conversa ou crie uma nova para começar
-            </p>
-          </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Max</h2>
+                <p className="text-muted-foreground">
+                  Selecione uma conversa ou crie uma nova para começar
+                </p>
+              </div>
+            </div>
+          )}
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

@@ -237,7 +237,7 @@ INSTRUÇÕES TÉCNICAS:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages,
         max_tokens: 500,
         temperature: 0.65,

@@ -130,6 +130,7 @@ function AppSidebar({
   );
 }
 
+// Chat component with sidebar integration
 export default function Chat() {
   const { user, signOut, loading: authLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);

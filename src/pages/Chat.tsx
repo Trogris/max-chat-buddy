@@ -32,7 +32,6 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import maxAvatar from '@/assets/max-avatar.png';
@@ -174,11 +173,11 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
+  const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionStartRef = useRef<number>(Date.now());
-  const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
-  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4.1-2025-04-14');
 
   // Keyboard shortcut for toggling sidebar (Ctrl+B)
   useEffect(() => {
@@ -228,47 +227,9 @@ export default function Chat() {
       ensureUserProfile();
       loadConversations();
       trackSession();
-      loadUserPreferences();
     }
   }, [user]);
 
-  const loadUserPreferences = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (profile?.preferred_model) {
-        setSelectedModel(profile.preferred_model);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar preferências:', error);
-    }
-  };
-
-  const updateModelPreference = async (model: string) => {
-    if (!user) return;
-    
-    try {
-      await supabase
-        .from('profiles')
-        .update({ preferred_model: model })
-        .eq('user_id', user.id);
-      
-      setSelectedModel(model);
-    } catch (error) {
-      console.error('Erro ao salvar preferência de modelo:', error);
-      toast({
-        title: "Erro ao salvar preferência",
-        description: "Não foi possível salvar sua preferência de modelo.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Auto-select first conversation if none is selected
   useEffect(() => {
@@ -481,7 +442,7 @@ export default function Chat() {
           message: userMessage,
           conversationHistory: conversationHistory,
           conversationId: currentConversation,
-          model: selectedModel,
+          model: 'gpt-4.1-2025-04-14',
         }
       });
       const responseTimeMs = Date.now() - startedAt;
@@ -634,22 +595,6 @@ export default function Chat() {
             <div className="flex items-center gap-2">
               <MessageSquare className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold">Max</h1>
-            </div>
-            <div className="ml-auto flex items-center gap-4">
-              <Select value={selectedModel} onValueChange={updateModelPreference}>
-                <SelectTrigger className="w-[200px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                  <SelectItem value="gpt-4.1-mini-2025-04-14">GPT-4.1 Mini</SelectItem>
-                  <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
-                  <SelectItem value="o4-mini-2025-04-16">O4 Mini</SelectItem>
-                  <SelectItem value="o3-2025-04-16">O3</SelectItem>
-                  <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 Mini</SelectItem>
-                  <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               {supabaseOk === false && (

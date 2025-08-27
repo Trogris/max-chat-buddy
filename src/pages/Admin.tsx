@@ -37,6 +37,7 @@ interface Profile {
   created_at: string;
   user_id: string;
   area?: string;
+  preferred_model?: string;
 }
 
 interface UsageStats {
@@ -423,6 +424,32 @@ export default function Admin() {
     }
   };
 
+  const updateUserModel = async (userId: string, model: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferred_model: model })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setProfiles(profiles.map(profile => 
+        profile.user_id === userId ? { ...profile, preferred_model: model } : profile
+      ));
+      
+      toast({
+        title: "Modelo atualizado",
+        description: "O modelo preferido do usuário foi atualizado com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar modelo",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadRagStats = async () => {
     try {
       setLoadingRagStats(true);
@@ -556,11 +583,12 @@ export default function Admin() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="max-kpis" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="max-kpis">KPIs do Max</TabsTrigger>
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="models">Modelos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="max-kpis" className="space-y-6 mt-6">
@@ -998,7 +1026,7 @@ export default function Admin() {
                           Criado em {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Área: {profile.area || 'Não informado'}
+                          Área: {profile.area || 'Não informado'} | Modelo: {profile.preferred_model || 'gpt-4.1-2025-04-14'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -1010,6 +1038,25 @@ export default function Admin() {
                           }`}>
                             {profile.role === 'admin' ? 'Administrador' : 'Usuário'}
                           </span>
+                        </div>
+                        <div className="min-w-[200px]">
+                          <Select
+                            value={profile.preferred_model || 'gpt-4.1-2025-04-14'}
+                            onValueChange={(value) => updateUserModel(profile.user_id, value)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg">
+                              <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                              <SelectItem value="gpt-4.1-mini-2025-04-14">GPT-4.1 Mini</SelectItem>
+                              <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1</SelectItem>
+                              <SelectItem value="o4-mini-2025-04-16">O4 Mini</SelectItem>
+                              <SelectItem value="o3-2025-04-16">O3</SelectItem>
+                              <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 Mini</SelectItem>
+                              <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="min-w-[150px]">
                           <Select
@@ -1034,6 +1081,91 @@ export default function Admin() {
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="models" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciamento de Modelos</CardTitle>
+                <CardDescription>
+                  Configure os modelos de IA preferidos para cada usuário
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {profiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{profile.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Modelo atual: {profile.preferred_model || 'gpt-4.1-2025-04-14'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Área: {profile.area || 'Não informado'}
+                        </p>
+                      </div>
+                      <div className="min-w-[250px]">
+                        <Select
+                          value={profile.preferred_model || 'gpt-4.1-2025-04-14'}
+                          onValueChange={(value) => updateUserModel(profile.user_id, value)}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-lg">
+                            <SelectItem value="gpt-4o-mini">
+                              <div className="flex flex-col">
+                                <span>GPT-4o Mini</span>
+                                <span className="text-xs text-muted-foreground">Rápido e econômico</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-4.1-mini-2025-04-14">
+                              <div className="flex flex-col">
+                                <span>GPT-4.1 Mini</span>
+                                <span className="text-xs text-muted-foreground">Equilibrio entre velocidade e qualidade</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-4.1-2025-04-14">
+                              <div className="flex flex-col">
+                                <span>GPT-4.1</span>
+                                <span className="text-xs text-muted-foreground">Modelo principal recomendado</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="o4-mini-2025-04-16">
+                              <div className="flex flex-col">
+                                <span>O4 Mini</span>
+                                <span className="text-xs text-muted-foreground">Raciocínio rápido</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="o3-2025-04-16">
+                              <div className="flex flex-col">
+                                <span>O3</span>
+                                <span className="text-xs text-muted-foreground">Raciocínio avançado</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-5-mini-2025-08-07">
+                              <div className="flex flex-col">
+                                <span>GPT-5 Mini</span>
+                                <span className="text-xs text-muted-foreground">Mais rápido e eficiente</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="gpt-5-2025-08-07">
+                              <div className="flex flex-col">
+                                <span>GPT-5</span>
+                                <span className="text-xs text-muted-foreground">Modelo mais avançado</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   ))}

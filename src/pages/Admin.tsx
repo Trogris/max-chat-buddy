@@ -90,7 +90,7 @@ export default function Admin() {
     engajamento: { picoHorario: '14:00-15:00', usuarioMaisAtivo: 'N/A', sessoesPorDia: 0 },
     qualidade: { taxaSucesso: 0, perguntasSemResposta: 0, respostasCompletas: 0 },
     performance: { tempoMedioResposta: 0, errosRegistrados: 0, disponibilidade: 99.9 },
-    consumo: { tokensProcessados: 0, custoEstimado: 0, modeloMaisUsado: 'gpt-4o-mini' },
+    consumo: { tokensProcessados: 0, custoEstimado: 0, modeloMaisUsado: 'gpt-4.1-2025-04-14' },
     acessosPorArea: []
   });
   const [loading, setLoading] = useState(true);
@@ -213,6 +213,27 @@ export default function Admin() {
         variant: "destructive",
       });
     }
+  };
+
+  const calculateMostUsedModel = () => {
+    const modelCounts: { [key: string]: number } = {};
+    
+    profiles.forEach(profile => {
+      const model = profile.preferred_model || 'gpt-4.1-2025-04-14';
+      modelCounts[model] = (modelCounts[model] || 0) + 1;
+    });
+
+    let mostUsedModel = 'gpt-4.1-2025-04-14';
+    let maxCount = 0;
+
+    Object.entries(modelCounts).forEach(([model, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostUsedModel = model;
+      }
+    });
+
+    return mostUsedModel;
   };
 
   const loadMaxKPIs = async () => {
@@ -382,7 +403,7 @@ export default function Admin() {
         consumo: {
           tokensProcessados,
           custoEstimado,
-          modeloMaisUsado: 'gpt-4o-mini'
+          modeloMaisUsado: calculateMostUsedModel()
         },
         acessosPorArea
       });
@@ -441,6 +462,9 @@ export default function Admin() {
         title: "Modelo atualizado",
         description: "O modelo preferido do usuário foi atualizado com sucesso.",
       });
+      
+      // Recarregar KPIs para atualizar estatísticas do modelo mais usado
+      loadMaxKPIs();
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar modelo",

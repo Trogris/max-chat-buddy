@@ -193,7 +193,20 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { message, conversationHistory = [] } = requestBody;
+    const { message, conversationHistory = [], model = 'gpt-4.1-2025-04-14' } = requestBody;
+
+    // Validate model parameter
+    const validModels = [
+      'gpt-4o-mini',
+      'gpt-4.1-mini-2025-04-14', 
+      'gpt-4.1-2025-04-14',
+      'o4-mini-2025-04-16',
+      'o3-2025-04-16',
+      'gpt-5-mini-2025-08-07',
+      'gpt-5-2025-08-07'
+    ];
+
+    const selectedModel = validModels.includes(model) ? model : 'gpt-4.1-2025-04-14';
 
     if (!message) {
       throw new Error('Mensagem é obrigatória');
@@ -297,6 +310,21 @@ INSTRUÇÕES TÉCNICAS:
     messages.push({ role: 'user', content: message });
 
     console.log('Enviando', messages.length, 'mensagens para OpenAI (incluindo system + histórico + atual)');
+    console.log('Modelo selecionado:', selectedModel);
+
+    // Determine request parameters based on model
+    const isLegacyModel = selectedModel === 'gpt-4o-mini' || selectedModel === 'gpt-4o';
+    const requestBody: any = {
+      model: selectedModel,
+      messages,
+    };
+
+    // Use appropriate token limit parameter based on model
+    if (isLegacyModel) {
+      requestBody.max_tokens = 600;
+    } else {
+      requestBody.max_completion_tokens = 600;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -304,11 +332,7 @@ INSTRUÇÕES TÉCNICAS:
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        messages,
-        max_completion_tokens: 600,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

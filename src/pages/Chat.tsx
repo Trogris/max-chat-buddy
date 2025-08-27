@@ -174,6 +174,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sessionStartRef = useRef<number>(Date.now());
   const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
   const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
 
@@ -250,20 +251,47 @@ export default function Chat() {
         messages_count: 0,
         tokens_count: 0,
       });
+      sessionStartRef.current = Date.now();
     } catch (error) {
       console.error('Error tracking session:', error);
     }
   };
 
-  const updateSessionStats = async (messageCount: number, tokenCount: number) => {
+  const updateSessionStats = async ({
+    deltaMessages,
+    tokensDelta,
+    error,
+    responseTimeMs,
+  }: { deltaMessages: number; tokensDelta: number; error: boolean; responseTimeMs: number }) => {
     if (!user) return;
-    
+
     try {
+      // Read current session stats
+      const { data: current } = await supabase
+        .from('usage_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      const prevMessages = current?.messages_count || 0;
+      const prevTokens = current?.tokens_count || 0;
+      const prevErrors = current?.error_count || 0;
+
+      const newMessages = prevMessages + deltaMessages;
+      const newTokens = prevTokens + tokensDelta;
+      const newErrors = prevErrors + (error ? 1 : 0);
+      const interactions = Math.max(1, Math.floor(newMessages / 2));
+      const successRate = Math.max(0, Math.min(100, ((interactions - newErrors) / interactions) * 100));
+
       await supabase
         .from('usage_stats')
         .update({
-          messages_count: messageCount,
-          tokens_count: tokenCount,
+          messages_count: newMessages,
+          tokens_count: newTokens,
+          error_count: newErrors,
+          success_rate: successRate,
+          response_time_ms: responseTimeMs,
           session_end: new Date().toISOString(),
         })
         .eq('user_id', user.id)
@@ -376,6 +404,7 @@ export default function Chat() {
     const userMessage = inputValue.trim();
     setInputValue('');
     setLoading(true);
+    const startedAt = Date.now();
 
     try {
       // Add user message to database
@@ -413,6 +442,7 @@ export default function Chat() {
           conversationId: currentConversation,
         }
       });
+      const responseTimeMs = Date.now() - startedAt;
 
       console.log('Resposta da AI:', aiResponse, aiError);
 
@@ -491,8 +521,7 @@ export default function Chat() {
         loadConversations();
       }
 
-      // Update session stats
-      await updateSessionStats(messages.length + 2, tokensUsed);
+      await updateSessionStats({ deltaMessages: 2, tokensDelta: tokensUsed, error: false, responseTimeMs });
 
     } catch (error: any) {
       console.error('Erro completo:', error);
@@ -514,6 +543,9 @@ export default function Chat() {
         description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
+
+      // Update session stats on error as well
+      await updateSessionStats({ deltaMessages: 2, tokensDelta: 0, error: true, responseTimeMs: Date.now() - startedAt });
     } finally {
       setLoading(false);
     }
@@ -562,16 +594,16 @@ export default function Chat() {
               <h1 className="text-xl font-bold">Max</h1>
             </div>
             <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
-              <span>
-                Supabase: <span className={supabaseOk ? 'text-primary' : (supabaseOk === false ? 'text-destructive' : '')}>
-                  {supabaseOk ? 'OK' : (supabaseOk === false ? 'Falha' : '...')}
+              {supabaseOk === false && (
+                <span>
+                  Supabase: <span className="text-destructive">Falha</span>
                 </span>
-              </span>
-              <span>
-                Edge: <span className={edgeOk ? 'text-primary' : (edgeOk === false ? 'text-destructive' : '')}>
-                  {edgeOk ? 'OK' : (edgeOk === false ? 'Falha' : '...')}
+              )}
+              {edgeOk === false && (
+                <span>
+                  Edge: <span className="text-destructive">Falha</span>
                 </span>
-              </span>
+              )}
             </div>
           </header>
 

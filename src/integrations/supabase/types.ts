@@ -202,33 +202,42 @@ export type Database = {
         Row: {
           area: string | null
           created_at: string
+          error_count: number | null
           id: string
           messages_count: number
+          response_time_ms: number | null
           session_end: string | null
           session_id: string
           session_start: string
+          success_rate: number | null
           tokens_count: number
           user_id: string
         }
         Insert: {
           area?: string | null
           created_at?: string
+          error_count?: number | null
           id?: string
           messages_count?: number
+          response_time_ms?: number | null
           session_end?: string | null
           session_id: string
           session_start?: string
+          success_rate?: number | null
           tokens_count?: number
           user_id: string
         }
         Update: {
           area?: string | null
           created_at?: string
+          error_count?: number | null
           id?: string
           messages_count?: number
+          response_time_ms?: number | null
           session_end?: string | null
           session_id?: string
           session_start?: string
+          success_rate?: number | null
           tokens_count?: number
           user_id?: string
         }

@@ -249,11 +249,17 @@ export default function Admin() {
         .from('messages')
         .select('*', { count: 'exact', head: true });
 
-      // Taxa de sucesso (assumindo que mensagens com role 'assistant' são sucessos)
+      // Métricas de qualidade
+      const { count: totalPerguntas } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'user');
+
       const { count: respostasCompletas } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .eq('role', 'assistant');
+        .eq('role', 'assistant')
+        .not('content', 'ilike', 'Erro:%');
 
       // Tokens processados
       const { data: tokenData } = await supabase
@@ -261,6 +267,22 @@ export default function Admin() {
         .select('tokens_count');
 
       const tokensProcessados = tokenData?.reduce((sum, stat) => sum + (stat.tokens_count || 0), 0) || 0;
+
+      // Performance (últimos 30 dias)
+      const { data: usageStatsPeriod } = await supabase
+        .from('usage_stats')
+        .select('response_time_ms, error_count, session_start')
+        .gte('session_start', oneMonthAgo.toISOString());
+
+      const tempos = (usageStatsPeriod || [])
+        .map((u) => u.response_time_ms || 0)
+        .filter((t) => t > 0);
+      const tempoMedioResposta = tempos.length
+        ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length)
+        : 0;
+      const errosRegistrados = (usageStatsPeriod || [])
+        .reduce((sum, u) => sum + (u.error_count || 0), 0);
+
 
       // Acessos por área (últimos 30 dias)
       const { data: convPeriodo } = await supabase
@@ -324,8 +346,10 @@ export default function Admin() {
         usuarioMaisAtivo = perfilAtivo?.name || 'Usuário Anônimo';
       }
 
-      const mediaPorUsuario = stats.active_users > 0 ? Math.round(totalMensagens! / stats.active_users) : 0;
-      const taxaSucesso = totalMensagens! > 0 ? Math.round((respostasCompletas! / totalMensagens!) * 100) : 0;
+      const mediaPorUsuario = stats.active_users > 0 ? Math.round((totalMensagens || 0) / stats.active_users) : 0;
+      const totalPerguntasCount = totalPerguntas || 0;
+      const taxaSucesso = totalPerguntasCount > 0 ? Math.round(((respostasCompletas || 0) / totalPerguntasCount) * 100) : 0;
+      const perguntasSemResposta = Math.max(0, totalPerguntasCount - (respostasCompletas || 0));
       const custoEstimado = tokensProcessados * 0.0001; // Estimativa simplificada
 
       setMaxKPIs({
@@ -346,12 +370,12 @@ export default function Admin() {
         },
         qualidade: {
           taxaSucesso,
-          perguntasSemResposta: Math.max(0, (totalMensagens || 0) - (respostasCompletas || 0)),
+          perguntasSemResposta,
           respostasCompletas: respostasCompletas || 0
         },
         performance: {
-          tempoMedioResposta: 1.2,
-          errosRegistrados: 5,
+          tempoMedioResposta,
+          errosRegistrados,
           disponibilidade: 99.9
         },
         consumo: {

@@ -442,7 +442,6 @@ export default function Chat() {
           message: userMessage,
           conversationHistory: conversationHistory,
           conversationId: currentConversation,
-          model: 'gpt-4.1-2025-04-14',
         }
       });
       const responseTimeMs = Date.now() - startedAt;

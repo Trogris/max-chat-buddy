@@ -192,25 +192,47 @@ serve(async (req) => {
       throw new Error('OpenAI API key não configurada');
     }
 
-    const requestBody = await req.json();
-    const { message, conversationHistory = [], model = 'gpt-4.1-2025-04-14' } = requestBody;
-
-    // Validate model parameter
-    const validModels = [
-      'gpt-4o-mini',
-      'gpt-4.1-mini-2025-04-14', 
-      'gpt-4.1-2025-04-14',
-      'o4-mini-2025-04-16',
-      'o3-2025-04-16',
-      'gpt-5-mini-2025-08-07',
-      'gpt-5-2025-08-07'
-    ];
-
-    const selectedModel = validModels.includes(model) ? model : 'gpt-4.1-2025-04-14';
-
-    if (!message) {
-      throw new Error('Mensagem é obrigatória');
+    const { message, conversationHistory = [], conversationId } = await req.json();
+    
+    if (!message || typeof message !== 'string') {
+      return new Response(JSON.stringify({ error: 'Mensagem é obrigatória' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    // Get user from JWT
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Autorização necessária' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Usuário não autenticado' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get user's preferred model from profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('preferred_model')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Erro ao buscar perfil:', profileError);
+    }
+
+    const selectedModel = profile?.preferred_model || 'gpt-4.1-2025-04-14';
+    console.log('Usando modelo do perfil:', selectedModel, 'para usuário:', user.id);
 
     console.log('=== NOVA CONSULTA ===');
     console.log('Mensagem recebida:', message);

@@ -1094,82 +1094,98 @@ export default function Admin() {
               <CardHeader>
                 <CardTitle>Gerenciamento de Modelos</CardTitle>
                 <CardDescription>
-                  Configure os modelos de IA preferidos para cada usuário
+                  Configure os modelos de IA preferidos para cada usuário (apenas administradores)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {profiles.map((profile) => (
-                    <div
-                      key={profile.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{profile.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Modelo atual: {profile.preferred_model || 'gpt-4.1-2025-04-14'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Área: {profile.area || 'Não informado'}
-                        </p>
-                      </div>
-                      <div className="min-w-[250px]">
-                        <Select
-                          value={profile.preferred_model || 'gpt-4.1-2025-04-14'}
-                          onValueChange={(value) => updateUserModel(profile.user_id, value)}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border shadow-lg">
-                            <SelectItem value="gpt-4o-mini">
-                              <div className="flex flex-col">
-                                <span>GPT-4o Mini</span>
-                                <span className="text-xs text-muted-foreground">Rápido e econômico</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="gpt-4.1-mini-2025-04-14">
-                              <div className="flex flex-col">
-                                <span>GPT-4.1 Mini</span>
-                                <span className="text-xs text-muted-foreground">Equilibrio entre velocidade e qualidade</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="gpt-4.1-2025-04-14">
-                              <div className="flex flex-col">
-                                <span>GPT-4.1</span>
-                                <span className="text-xs text-muted-foreground">Modelo principal recomendado</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="o4-mini-2025-04-16">
-                              <div className="flex flex-col">
-                                <span>O4 Mini</span>
-                                <span className="text-xs text-muted-foreground">Raciocínio rápido</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="o3-2025-04-16">
-                              <div className="flex flex-col">
-                                <span>O3</span>
-                                <span className="text-xs text-muted-foreground">Raciocínio avançado</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="gpt-5-mini-2025-08-07">
-                              <div className="flex flex-col">
-                                <span>GPT-5 Mini</span>
-                                <span className="text-xs text-muted-foreground">Mais rápido e eficiente</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="gpt-5-2025-08-07">
-                              <div className="flex flex-col">
-                                <span>GPT-5</span>
-                                <span className="text-xs text-muted-foreground">Modelo mais avançado</span>
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                {!isAdmin ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Acesso restrito a administradores</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">ℹ️ Informações sobre os Modelos</h4>
+                      <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                        <p><strong>GPT-5:</strong> Modelo mais avançado disponível</p>
+                        <p><strong>GPT-5 Mini:</strong> Versão mais rápida e econômica do GPT-5</p>
+                        <p><strong>GPT-4.1:</strong> Modelo principal recomendado para uso geral</p>
+                        <p><strong>O3/O4:</strong> Modelos especializados em raciocínio complexo</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    
+                    {profiles.map((profile) => (
+                      <div
+                        key={profile.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{profile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Modelo atual: {profile.preferred_model || 'gpt-4.1-2025-04-14'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Área: {profile.area || 'Não informado'}
+                          </p>
+                        </div>
+                        <div className="min-w-[250px]">
+                          <Select
+                            value={profile.preferred_model || 'gpt-4.1-2025-04-14'}
+                            onValueChange={(value) => updateUserModel(profile.user_id, value)}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg">
+                              <SelectItem value="gpt-5-2025-08-07">
+                                <div className="flex flex-col">
+                                  <span>GPT-5</span>
+                                  <span className="text-xs text-muted-foreground">Modelo mais avançado</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="gpt-5-mini-2025-08-07">
+                                <div className="flex flex-col">
+                                  <span>GPT-5 Mini</span>
+                                  <span className="text-xs text-muted-foreground">Mais rápido e eficiente</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="gpt-4.1-2025-04-14">
+                                <div className="flex flex-col">
+                                  <span>GPT-4.1</span>
+                                  <span className="text-xs text-muted-foreground">Modelo principal recomendado</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="gpt-4.1-mini-2025-04-14">
+                                <div className="flex flex-col">
+                                  <span>GPT-4.1 Mini</span>
+                                  <span className="text-xs text-muted-foreground">Equilibrio entre velocidade e qualidade</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="o3-2025-04-16">
+                                <div className="flex flex-col">
+                                  <span>O3</span>
+                                  <span className="text-xs text-muted-foreground">Raciocínio avançado</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="o4-mini-2025-04-16">
+                                <div className="flex flex-col">
+                                  <span>O4 Mini</span>
+                                  <span className="text-xs text-muted-foreground">Raciocínio rápido</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="gpt-4o-mini">
+                                <div className="flex flex-col">
+                                  <span>GPT-4o Mini</span>
+                                  <span className="text-xs text-muted-foreground">Modelo legado</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

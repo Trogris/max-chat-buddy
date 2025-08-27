@@ -19,6 +19,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
   SidebarInset,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { 
   MessageSquare, 
@@ -27,8 +28,12 @@ import {
   Plus, 
   Trash2, 
   Settings,
-  Loader2
+  Loader2,
+  Menu,
+  X
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import maxAvatar from '@/assets/max-avatar.png';
 
 interface Message {
@@ -130,6 +135,35 @@ function AppSidebar({
   );
 }
 
+// Enhanced sidebar trigger component
+function EnhancedSidebarTrigger() {
+  const { open, toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSidebar}
+          className="h-9 w-9 p-0 hover:bg-accent border border-border/40 hover:border-border"
+          aria-label={open ? "Fechar sidebar" : "Abrir sidebar"}
+        >
+          {open ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Menu className="h-4 w-4" />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">
+        {open ? "Fechar" : "Abrir"} sidebar {!isMobile && "(Ctrl+B)"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 // Chat component with sidebar integration
 export default function Chat() {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -142,6 +176,25 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
   const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
+
+  // Keyboard shortcut for toggling sidebar (Ctrl+B)
+  useEffect(() => {
+    const handleKeyboardShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        const sidebar = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+        if (sidebar) {
+          const trigger = sidebar.parentElement?.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
+          if (trigger) {
+            trigger.click();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboardShortcut);
+    return () => document.removeEventListener('keydown', handleKeyboardShortcut);
+  }, []);
 
   const ensureUserProfile = async () => {
     if (!user) return;
@@ -502,8 +555,8 @@ export default function Chat() {
         />
         
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <EnhancedSidebarTrigger />
             <div className="flex items-center gap-2">
               <MessageSquare className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold">Max</h1>

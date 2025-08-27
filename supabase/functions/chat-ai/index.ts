@@ -314,16 +314,16 @@ INSTRUÇÕES TÉCNICAS:
 
     // Determine request parameters based on model
     const isLegacyModel = selectedModel === 'gpt-4o-mini' || selectedModel === 'gpt-4o';
-    const requestBody: any = {
+    const openaiRequest: any = {
       model: selectedModel,
       messages,
     };
 
     // Use appropriate token limit parameter based on model
     if (isLegacyModel) {
-      requestBody.max_tokens = 600;
+      openaiRequest.max_tokens = 600;
     } else {
-      requestBody.max_completion_tokens = 600;
+      openaiRequest.max_completion_tokens = 600;
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -332,7 +332,7 @@ INSTRUÇÕES TÉCNICAS:
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(openaiRequest),
     });
 
     if (!response.ok) {

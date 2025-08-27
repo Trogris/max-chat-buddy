@@ -158,16 +158,8 @@ export default function DocumentManager() {
         return { inserted: 0, failed: failures.length, duplicates: successes.length };
       }
 
-      // Inserir em lotes
+      // Inserir em lotes e coletar IDs
       let inserted = 0;
-      for (let i = 0; i < toInsert.length; i += SUPABASE_BATCH) {
-        const chunk = toInsert.slice(i, i + SUPABASE_BATCH);
-        const { error } = await supabase.from('company_documents').insert(chunk);
-        if (error) throw error;
-        inserted += chunk.length;
-      }
-
-      // Coletar IDs dos documentos inseridos
       const insertedIds: string[] = [];
       for (let i = 0; i < toInsert.length; i += SUPABASE_BATCH) {
         const chunk = toInsert.slice(i, i + SUPABASE_BATCH);

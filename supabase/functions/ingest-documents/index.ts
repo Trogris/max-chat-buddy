@@ -48,17 +48,19 @@ function chunkText(text: string, chunkSize = 800, overlap = 150): string[] {
 
 // Function to extract page number from chunk (for PDFs)
 function extractPageNumber(chunk: string): number | null {
-  const pageMatch = chunk.match(/— Página (\d+) —/);
-  if (pageMatch) {
-    return parseInt(pageMatch[1], 10);
-  }
+  // Look for page markers in Portuguese and English
+  const patterns = [
+    /— Página (\d+) —/,
+    /Page (\d+)/i,
+    /Pág\. (\d+)/i,
+    /p\. (\d+)/i
+  ];
   
-  // Try to find the last page marker before this chunk
-  const pageMarkers = chunk.match(/— Página (\d+) —/g);
-  if (pageMarkers && pageMarkers.length > 0) {
-    const lastMarker = pageMarkers[pageMarkers.length - 1];
-    const match = lastMarker.match(/— Página (\d+) —/);
-    return match ? parseInt(match[1], 10) : null;
+  for (const pattern of patterns) {
+    const match = chunk.match(pattern);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
   }
   
   return null;
@@ -161,7 +163,7 @@ serve(async (req) => {
                   document_id: documentId,
                   chunk_index: i + index,
                   content: chunk,
-                  embedding: JSON.stringify(embedding),
+                  embedding: embedding,
                   page: pageNumber,
                   filename: document.filename,
                   path: document.path || null,

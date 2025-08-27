@@ -68,11 +68,15 @@ export type Database = {
           created_at: string
           file_type: string
           filename: string
+          headings: Json | null
           id: string
+          keywords: string[] | null
           mime_type: string | null
           pages: number | null
           sheets: Json | null
           size_bytes: number | null
+          summary: string | null
+          title: string | null
           truncated: boolean | null
           updated_at: string
           uploaded_by: string
@@ -83,11 +87,15 @@ export type Database = {
           created_at?: string
           file_type: string
           filename: string
+          headings?: Json | null
           id?: string
+          keywords?: string[] | null
           mime_type?: string | null
           pages?: number | null
           sheets?: Json | null
           size_bytes?: number | null
+          summary?: string | null
+          title?: string | null
           truncated?: boolean | null
           updated_at?: string
           uploaded_by: string
@@ -98,11 +106,15 @@ export type Database = {
           created_at?: string
           file_type?: string
           filename?: string
+          headings?: Json | null
           id?: string
+          keywords?: string[] | null
           mime_type?: string | null
           pages?: number | null
           sheets?: Json | null
           size_bytes?: number | null
+          summary?: string | null
+          title?: string | null
           truncated?: boolean | null
           updated_at?: string
           uploaded_by?: string

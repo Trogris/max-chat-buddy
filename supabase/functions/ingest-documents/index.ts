@@ -13,6 +13,63 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extract document metadata using OpenAI
+async function extractDocumentMetadata(content: string, filename: string): Promise<{ title: string; summary: string; keywords: string[]; headings: any[] }> {
+  if (!openAIApiKey) {
+    console.error('OpenAI API key not found')
+    return { title: filename, summary: '', keywords: [], headings: [] }
+  }
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini-2025-04-14',
+        max_tokens: 500,
+        temperature: 0.3,
+        messages: [{
+          role: 'user',
+          content: `Analise este documento e extraia metadados estruturados. Retorne apenas um JSON válido no formato:
+{
+  "title": "título principal do documento",
+  "summary": "resumo em 1-2 frases do conteúdo principal",
+  "keywords": ["palavra1", "palavra2", "palavra3"],
+  "headings": [{"level": 1, "text": "Título Principal"}, {"level": 2, "text": "Subtítulo"}]
+}
+
+Documento: ${content.slice(0, 3000)}`
+        }]
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const content_response = data.choices[0]?.message?.content
+
+    if (!content_response) {
+      throw new Error('No content in OpenAI response')
+    }
+
+    const parsed = JSON.parse(content_response)
+    return {
+      title: parsed.title || filename,
+      summary: parsed.summary || '',
+      keywords: parsed.keywords || [],
+      headings: parsed.headings || []
+    }
+  } catch (error) {
+    console.error('Error extracting metadata:', error)
+    return { title: filename, summary: '', keywords: [], headings: [] }
+  }
+}
+
 // Function to chunk text with overlap
 function chunkText(text: string, chunkSize = 800, overlap = 150): string[] {
   if (!text || text.length <= chunkSize) return [text];
@@ -131,6 +188,30 @@ serve(async (req) => {
           console.error(`Documento não encontrado: ${documentId}`);
           totalErrors++;
           continue;
+        }
+
+        console.log(`Found document: ${document.filename} (${document.content.length} chars)`);
+
+        // Extract metadata for the document if not already present
+        if (!document.title || !document.summary) {
+          console.log(`Extracting metadata for document ${documentId}...`)
+          const metadata = await extractDocumentMetadata(document.content, document.filename)
+          
+          const { error: updateError } = await supabase
+            .from('company_documents')
+            .update({
+              title: metadata.title,
+              summary: metadata.summary,
+              keywords: metadata.keywords,
+              headings: metadata.headings
+            })
+            .eq('id', documentId)
+
+          if (updateError) {
+            console.error(`Error updating document metadata:`, updateError)
+          } else {
+            console.log(`Updated metadata for document ${documentId}`)
+          }
         }
 
         // Delete existing chunks for this document

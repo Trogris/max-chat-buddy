@@ -21,6 +21,10 @@ interface Document {
   truncated?: boolean;
   content_hash: string;
   created_at: string;
+  title?: string;
+  summary?: string;
+  keywords?: string[];
+  headings?: any;
 }
 
 export default function DocumentManager() {
@@ -53,7 +57,7 @@ export default function DocumentManager() {
       setLoading(true);
       const { data, error } = await supabase
         .from('company_documents')
-        .select('id, filename, file_type, mime_type, size_bytes, pages, sheets, truncated, content_hash, created_at')
+        .select('id, filename, file_type, mime_type, size_bytes, pages, sheets, truncated, content_hash, created_at, title, summary, keywords, headings')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -464,11 +468,36 @@ export default function DocumentManager() {
                     <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{doc.filename}</span>
+                        <span className="text-sm font-medium truncate">{doc.title || doc.filename}</span>
                         {doc.truncated && <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Truncado</span>}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {doc.file_type} • {doc.size_bytes ? `${(doc.size_bytes / 1024).toFixed(1)}KB` : ''} 
+                      
+                      {doc.summary && (
+                        <div className="text-xs text-muted-foreground italic bg-muted/50 p-2 rounded mt-1">
+                          {doc.summary}
+                        </div>
+                      )}
+                      
+                      {doc.keywords && doc.keywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {doc.keywords.slice(0, 4).map((keyword, idx) => (
+                            <span 
+                              key={idx} 
+                              className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                          {doc.keywords.length > 4 && (
+                            <span className="text-xs text-muted-foreground">
+                              +{doc.keywords.length - 4} mais
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Arquivo: {doc.filename} • {doc.file_type} • {doc.size_bytes ? `${(doc.size_bytes / 1024).toFixed(1)}KB` : ''} 
                         {doc.pages ? ` • ${doc.pages} pág.` : ''}
                         {doc.sheets && Array.isArray(doc.sheets) ? ` • ${doc.sheets.length} plan.` : ''}
                         • {new Date(doc.created_at).toLocaleDateString('pt-BR')}

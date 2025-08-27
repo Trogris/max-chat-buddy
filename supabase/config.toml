@@ -2,3 +2,6 @@ project_id = "dcrbacdjfbgpvzbbcwws"
 
 [functions.chat-ai]
 verify_jwt = false
+
+[functions.ingest-documents]
+verify_jwt = false

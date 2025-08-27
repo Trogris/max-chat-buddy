@@ -32,10 +32,76 @@ function extractEmojis(text: string): string[] {
   }
 }
 
-// Função para buscar documentos relevantes baseado na consulta do usuário
-async function searchRelevantDocuments(userQuery: string) {
+// Função para busca semântica usando embeddings
+async function searchRelevantChunks(userQuery: string) {
   try {
-    console.log('Iniciando busca por documentos relevantes para:', userQuery);
+    console.log('Iniciando busca semântica para:', userQuery);
+    
+    // Gerar embedding da consulta do usuário
+    const queryEmbeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: userQuery,
+      }),
+    });
+
+    if (!queryEmbeddingResponse.ok) {
+      console.error('Erro ao gerar embedding da consulta');
+      throw new Error('Falha ao gerar embedding da consulta');
+    }
+
+    const embeddingData = await queryEmbeddingResponse.json();
+    const queryEmbedding = embeddingData.data[0].embedding;
+
+    console.log('Embedding da consulta gerado, buscando chunks relevantes...');
+
+    // Buscar chunks mais similares usando a função SQL
+    const { data: relevantChunks, error } = await supabase
+      .rpc('match_document_chunks', {
+        query_embedding: queryEmbedding,
+        match_count: 8,
+        filter: {}
+      });
+
+    if (error) {
+      console.error('Erro na busca de chunks:', error);
+      // Fallback para busca por keywords se a busca vetorial falhar
+      return await searchRelevantDocumentsFallback(userQuery);
+    }
+
+    if (!relevantChunks || relevantChunks.length === 0) {
+      console.log('Nenhum chunk relevante encontrado');
+      return 'Não encontrei informações específicas sobre sua consulta nos documentos carregados. Por favor, reformule sua pergunta ou seja mais específico.';
+    }
+
+    console.log(`Encontrados ${relevantChunks.length} chunks relevantes`);
+
+    // Formatar contexto dos chunks mais relevantes
+    const contextChunks = relevantChunks.map((chunk: any, index: number) => {
+      const pageInfo = chunk.page ? ` (Página ${chunk.page})` : '';
+      const similarity = (chunk.similarity * 100).toFixed(1);
+      return `=== TRECHO ${index + 1}: ${chunk.filename}${pageInfo} (Similaridade: ${similarity}%) ===\n${chunk.content}\n=== FIM DO TRECHO ===\n`;
+    }).join('\n');
+
+    console.log(`Contexto preparado com ${contextChunks.length} caracteres de ${relevantChunks.length} chunks`);
+    
+    return contextChunks;
+  } catch (error) {
+    console.error('Erro na busca semântica:', error);
+    // Fallback para busca por keywords
+    return await searchRelevantDocumentsFallback(userQuery);
+  }
+}
+
+// Função de fallback para busca por keywords (mantém compatibilidade)
+async function searchRelevantDocumentsFallback(userQuery: string) {
+  try {
+    console.log('Usando busca por keywords como fallback para:', userQuery);
     
     // Buscar todos os documentos
     const { data: allDocs, error } = await supabase
@@ -87,19 +153,19 @@ async function searchRelevantDocuments(userQuery: string) {
     const relevantDocs = docsWithScore
       .filter(doc => doc.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // até 5 documentos
+      .slice(0, 3); // reduzido para 3 documentos
 
     console.log('Documentos relevantes encontrados:', relevantDocs.map(d => ({ filename: d.filename, score: d.score })));
 
     if (relevantDocs.length === 0) {
-      return `Não encontrei informações específicas sobre "${userQuery}" nos documentos carregados. Os documentos disponíveis são: ${allDocs.map(d => d.filename).join(', ')}. Tente reformular sua pergunta ou seja mais específico.`;
+      return `Não encontrei informações específicas sobre "${userQuery}" nos documentos carregados. Tente reformular sua pergunta ou seja mais específico.`;
     }
 
     // Formatar contexto dos documentos mais relevantes (com limite de caracteres)
     const contextDocs = relevantDocs.map(doc => {
-      // Limitar cada documento a 3000 caracteres para acelerar o processamento
-      const truncatedContent = doc.content.length > 3000 
-        ? doc.content.substring(0, 3000) + '\n[... documento truncado para otimizar resposta ...]'
+      // Limitar cada documento a 2000 caracteres para otimizar
+      const truncatedContent = doc.content.length > 2000 
+        ? doc.content.substring(0, 2000) + '\n[... documento truncado ...]'
         : doc.content;
       
       return `=== DOCUMENTO: ${doc.filename} (Relevância: ${doc.score}) ===\n${truncatedContent}\n=== FIM DO DOCUMENTO ===\n`;
@@ -109,7 +175,7 @@ async function searchRelevantDocuments(userQuery: string) {
     
     return contextDocs;
   } catch (error) {
-    console.error('Erro na busca de documentos:', error);
+    console.error('Erro na busca de documentos fallback:', error);
     return 'Erro ao processar documentos da empresa.';
   }
 }
@@ -160,8 +226,8 @@ serve(async (req) => {
       });
     }
 
-    // Buscar documentos relevantes usando RAG
-    const relevantContext = await searchRelevantDocuments(message);
+    // Buscar chunks relevantes usando busca semântica
+    const relevantContext = await searchRelevantChunks(message);
     console.log('Contexto encontrado, enviando para OpenAI...');
 
     // Preparar mensagens com histórico e contexto
@@ -188,9 +254,10 @@ LIMITAÇÕES DE RESPOSTA - NÃO RESPONDA SOBRE:
 - Normas ou regulamentações que não sejam INTERNAS da Fiscaltech
 
 OBRIGATÓRIO EM TODA RESPOSTA:
-- Indique SEMPRE o nome do documento de origem quando usar informação específica
+- SEMPRE indique as fontes utilizadas no final da resposta, no formato: "Fontes: nome_arquivo.pdf (p. X), outro_arquivo.docx"
 - Use linguagem simples, cordial e acessível
 - Estimule que o usuário continue a conversa com sugestões úteis baseadas nos documentos
+- NUNCA invente informações que não estejam nos trechos fornecidos
 
 CONTEXTO DOS DOCUMENTOS INTERNOS DA FISCALTECH:
 ${relevantContext}
@@ -238,10 +305,9 @@ INSTRUÇÕES TÉCNICAS:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1-2025-04-14',
         messages,
-        max_tokens: 500,
-        temperature: 0.65,
+        max_completion_tokens: 600,
       }),
     });
 

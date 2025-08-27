@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -23,7 +24,10 @@ import {
   Activity,
   Edit,
   Check,
-  X
+  X,
+  Database,
+  FileText,
+  Zap
 } from 'lucide-react';
 
 interface Profile {
@@ -91,6 +95,14 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [ragStats, setRagStats] = useState({
+    totalDocuments: 0,
+    totalChunks: 0,
+    documentsWithChunks: 0,
+    avgChunksPerDoc: 0
+  });
+  const [loadingRagStats, setLoadingRagStats] = useState(true);
+  const [ingestingAll, setIngestingAll] = useState(false);
 
   const areas = [
     'Não informado',
@@ -112,6 +124,7 @@ export default function Admin() {
       loadProfiles();
       loadStats();
       loadMaxKPIs();
+      loadRagStats();
     }
   }, [user]);
 
@@ -383,6 +396,100 @@ export default function Admin() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const loadRagStats = async () => {
+    try {
+      setLoadingRagStats(true);
+      
+      // Buscar estatísticas dos documentos
+      const { data: documents, error: docsError } = await supabase
+        .from('company_documents')
+        .select('id');
+      
+      const { data: chunks, error: chunksError } = await supabase
+        .from('company_document_chunks')
+        .select('document_id');
+
+      if (docsError) throw docsError;
+      if (chunksError) throw chunksError;
+
+      const totalDocuments = documents?.length || 0;
+      const totalChunks = chunks?.length || 0;
+      
+      // Contar documentos únicos que têm chunks
+      const documentsWithChunks = chunks ? 
+        new Set(chunks.map(c => c.document_id)).size : 0;
+      
+      const avgChunksPerDoc = documentsWithChunks > 0 ? 
+        Math.round((totalChunks / documentsWithChunks) * 10) / 10 : 0;
+
+      setRagStats({
+        totalDocuments,
+        totalChunks,
+        documentsWithChunks,
+        avgChunksPerDoc
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao carregar estatísticas do RAG:', error);
+    } finally {
+      setLoadingRagStats(false);
+    }
+  };
+
+  const ingestAllDocuments = async () => {
+    try {
+      setIngestingAll(true);
+      
+      // Buscar todos os documentos
+      const { data: documents, error } = await supabase
+        .from('company_documents')
+        .select('id');
+
+      if (error) throw error;
+
+      if (!documents || documents.length === 0) {
+        toast({
+          title: "Nenhum documento encontrado",
+          description: "Adicione documentos antes de executar a ingestão.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const documentIds = documents.map(doc => doc.id);
+
+      toast({
+        title: "Ingestão iniciada",
+        description: `Processando ${documentIds.length} documentos para busca semântica...`,
+      });
+
+      // Chamar função de ingestão
+      const { data, error: ingestError } = await supabase.functions.invoke('ingest-documents', {
+        body: { document_ids: documentIds }
+      });
+
+      if (ingestError) throw ingestError;
+
+      toast({
+        title: "Ingestão concluída",
+        description: `${data.total_chunks} chunks criados para ${data.processed_documents} documentos.`,
+      });
+
+      // Recarregar estatísticas
+      await loadRagStats();
+
+    } catch (error: any) {
+      console.error('Erro na ingestão completa:', error);
+      toast({
+        title: "Erro na ingestão",
+        description: error.message || "Falha ao processar documentos.",
+        variant: "destructive",
+      });
+    } finally {
+      setIngestingAll(false);
     }
   };
 
@@ -725,6 +832,124 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-6 mt-6">
+            {/* Estatísticas do Sistema RAG */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loadingRagStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      ragStats.totalDocuments
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Chunks Indexados</CardTitle>
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loadingRagStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      ragStats.totalChunks
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Docs Processados</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loadingRagStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      ragStats.documentsWithChunks
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    de {ragStats.totalDocuments} total
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Média Chunks/Doc</CardTitle>
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {loadingRagStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      ragStats.avgChunksPerDoc
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Controles do Sistema RAG */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Controles do Sistema RAG
+                </CardTitle>
+                <CardDescription>
+                  Gerencie a ingestão e processamento dos documentos para busca semântica
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Reprocessar Todos os Documentos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Executa chunking e geração de embeddings para todos os documentos
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {ragStats.documentsWithChunks === ragStats.totalDocuments && ragStats.totalDocuments > 0 && (
+                      <Badge variant="secondary">✅ Completo</Badge>
+                    )}
+                    {ragStats.documentsWithChunks < ragStats.totalDocuments && ragStats.totalDocuments > 0 && (
+                      <Badge variant="destructive">⚠️ Pendente</Badge>
+                    )}
+                    <Button
+                      onClick={ingestAllDocuments}
+                      disabled={ingestingAll || ragStats.totalDocuments === 0}
+                      className="flex items-center gap-2"
+                    >
+                      {ingestingAll ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <Database className="h-4 w-4" />
+                          Reprocessar Tudo
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <DocumentManager />
           </TabsContent>
 

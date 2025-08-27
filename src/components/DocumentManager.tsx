@@ -167,10 +167,56 @@ export default function DocumentManager() {
         inserted += chunk.length;
       }
 
-      return { inserted, failed: failures.length, duplicates: successes.length - toInsert.length };
+      // Coletar IDs dos documentos inseridos
+      const insertedIds: string[] = [];
+      for (let i = 0; i < toInsert.length; i += SUPABASE_BATCH) {
+        const chunk = toInsert.slice(i, i + SUPABASE_BATCH);
+        const { data: insertedDocs, error } = await supabase
+          .from('company_documents')
+          .insert(chunk)
+          .select('id');
+        if (error) throw error;
+        inserted += chunk.length;
+        if (insertedDocs) {
+          insertedIds.push(...insertedDocs.map(doc => doc.id));
+        }
+      }
+
+      return { inserted, failed: failures.length, duplicates: successes.length - toInsert.length, insertedIds };
     } catch (err: any) {
       console.error(err);
       throw err;
+    }
+  };
+
+  // Função para acionar ingestão de documentos
+  const ingestDocuments = async (documentIds: string[]) => {
+    if (documentIds.length === 0) return;
+    
+    try {
+      toast({
+        title: "Ingestão iniciada",
+        description: "Processando documentos para busca semântica...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('ingest-documents', {
+        body: { document_ids: documentIds }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Ingestão concluída",
+        description: `${data.total_chunks} chunks criados para busca semântica.`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro na ingestão:', error);
+      toast({
+        title: "Erro na ingestão",
+        description: "Falha ao processar documentos para busca semântica.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -194,6 +240,9 @@ export default function DocumentManager() {
       if (result.inserted > 0) {
         toast({ title: 'Upload concluído', description: `${result.inserted} arquivo(s) inserido(s).` });
         await loadDocuments();
+        
+        // Acionar ingestão dos documentos
+        await ingestDocuments(result.insertedIds || []);
       } else if (result.failed === 0 && result.duplicates === 0) {
         toast({ title: 'Nada a enviar', description: 'Nenhum arquivo válido.' });
       }
@@ -299,6 +348,13 @@ export default function DocumentManager() {
 
       if (totalInserted > 0) {
         await loadDocuments();
+        
+        // Acionar ingestão dos documentos
+        // Note: Precisaríamos dos IDs dos documentos inseridos para fazer a ingestão
+        toast({
+          title: "Ingestão necessária",
+          description: "Execute a ingestão manual dos documentos na área administrativa.",
+        });
       }
       
     } catch (err: any) {

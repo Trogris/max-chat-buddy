@@ -51,15 +51,7 @@ export type Database = {
           path?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "company_document_chunks_document_id_fkey"
-            columns: ["document_id"]
-            isOneToOne: false
-            referencedRelation: "company_documents"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       company_documents: {
         Row: {

@@ -82,6 +82,15 @@ interface MaxKPIs {
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
+
+  // Função helper para formatar tempo
+  const formatarTempo = (ms: number): string => {
+    if (ms < 1000) {
+      return `${ms} ms`;
+    }
+    return `${(ms / 1000).toFixed(1)} s`;
+  };
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [stats, setStats] = useState<UsageStats>({ total_messages: 0, total_tokens: 0, active_users: 0 });
   const [maxKPIs, setMaxKPIs] = useState<MaxKPIs>({
@@ -776,8 +785,8 @@ export default function Admin() {
                     <CardTitle className="text-sm">Tempo Médio de Resposta</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{maxKPIs.performance.tempoMedioResposta}s</div>
-                    <p className="text-xs text-muted-foreground">tempo de processamento</p>
+                    <div className="text-2xl font-bold">{formatarTempo(maxKPIs.performance.tempoMedioResposta)}</div>
+                    <p className="text-xs text-muted-foreground">tempo de processamento (últimas 4 semanas)</p>
                   </CardContent>
                 </Card>
                 <Card>

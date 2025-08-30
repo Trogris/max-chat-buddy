@@ -1146,13 +1146,21 @@ export default function Admin() {
               <CardHeader>
                 <CardTitle>Max Agent - Versão Streamlit</CardTitle>
                 <CardDescription>
-                  Baixe o código completo do agente Max em Python com Streamlit para desenvolvimento e testes
+                  Arquivos do Max Agent em Python disponíveis na pasta do projeto
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Arquivos Disponíveis na Pasta</h4>
+                    <div className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1">
+                      <p>Os arquivos do Max Agent estão disponíveis em: <strong>streamlit_max_agent/</strong></p>
+                      <p>Copie manualmente todos os arquivos desta pasta para seu projeto.</p>
+                    </div>
+                  </div>
+
                   <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">📦 Pacote Completo Incluído</h4>
+                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">📦 Funcionalidades Incluídas</h4>
                     <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
                       <p>• Sistema RAG completo com ChromaDB</p>
                       <p>• Integração com modelos OpenAI (GPT-4, GPT-3.5-turbo)</p>
@@ -1166,37 +1174,50 @@ export default function Admin() {
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h4 className="font-medium">max-agent-streamlit.zip</h4>
-                        <p className="text-sm text-muted-foreground">Código fonte completo do Max Agent em Python</p>
+                        <h4 className="font-medium">Instruções Detalhadas</h4>
+                        <p className="text-sm text-muted-foreground">Como usar os arquivos do Max Agent</p>
                       </div>
                     </div>
                     <Button asChild>
                       <a 
-                        href="/max-agent-streamlit.zip" 
-                        download="max-agent-streamlit.zip"
+                        href="/max-agent-instructions.txt" 
+                        target="_blank"
                         className="flex items-center gap-2"
                       >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Baixar
+                        <FileText className="h-4 w-4" />
+                        Ver Instruções
                       </a>
                     </Button>
                   </div>
                   
                   <div className="text-sm text-muted-foreground space-y-2">
-                    <p><strong>Próximos passos após download:</strong></p>
+                    <p><strong>Passos para usar o Max Agent:</strong></p>
                     <ol className="list-decimal list-inside space-y-1 ml-2">
-                      <li>Extraia o arquivo ZIP</li>
+                      <li>Copie a pasta <code className="bg-muted px-1 py-0.5 rounded">streamlit_max_agent/</code> para seu projeto</li>
                       <li>Configure sua OPENAI_API_KEY no arquivo .env</li>
                       <li>Instale as dependências: <code className="bg-muted px-1 py-0.5 rounded">pip install -r requirements.txt</code></li>
                       <li>Execute: <code className="bg-muted px-1 py-0.5 rounded">streamlit run streamlit_app.py</code></li>
                     </ol>
+                    <p className="mt-3 font-medium">Estrutura de arquivos:</p>
+                    <div className="bg-muted p-2 rounded text-xs font-mono">
+                      streamlit_max_agent/<br/>
+                      ├── README.md<br/>
+                      ├── requirements.txt<br/>
+                      ├── .env.example<br/>
+                      ├── streamlit_app.py<br/>
+                      ├── .streamlit/config.toml<br/>
+                      ├── prompts/system_max.pt.txt<br/>
+                      └── agent/<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;├── __init__.py<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;├── config.py<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;├── utils.py<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;├── rag_store.py<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;├── ingest.py<br/>
+                      &nbsp;&nbsp;&nbsp;&nbsp;└── chat.py
+                    </div>
                     <p className="mt-3">
                       <strong>Deploy no Streamlit Cloud:</strong> Faça upload para GitHub e conecte em{" "}
                       <a href="https://share.streamlit.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

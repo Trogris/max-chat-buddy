@@ -1,0 +1,36 @@
+INSTRUÇÕES PARA USAR O MAX AGENT STREAMLIT
+
+Os arquivos do Max Agent estão na pasta: streamlit_max_agent/
+
+Para usar:
+
+1. Copie todos os arquivos da pasta streamlit_max_agent/ para seu projeto
+2. Instale as dependências:
+   pip install -r requirements.txt
+3. Configure o arquivo .env:
+   cp .env.example .env
+   # Adicione sua OPENAI_API_KEY no arquivo .env
+4. Execute:
+   streamlit run streamlit_app.py
+
+ESTRUTURA DOS ARQUIVOS:
+streamlit_max_agent/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── streamlit_app.py
+├── .streamlit/config.toml
+├── prompts/system_max.pt.txt
+└── agent/
+    ├── __init__.py
+    ├── config.py
+    ├── utils.py
+    ├── rag_store.py
+    ├── ingest.py
+    └── chat.py
+
+Para deploy no Streamlit Cloud:
+1. Suba os arquivos para um repositório GitHub
+2. Acesse share.streamlit.io
+3. Configure a variável OPENAI_API_KEY nos Settings
+4. Deploy automático!

@@ -82,6 +82,7 @@ interface MaxKPIs {
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Função helper para formatar tempo
   const formatarTempo = (ms: number): string => {
@@ -90,6 +91,36 @@ export default function Admin() {
     }
     return `${(ms / 1000).toFixed(1)} s`;
   };
+
+  // Verificar se o usuário é admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error || !data) {
+          setIsAdmin(false);
+          return;
+        }
+
+        setIsAdmin(data.role === 'admin');
+      } catch (error) {
+        console.error('Erro ao verificar status de admin:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [stats, setStats] = useState<UsageStats>({ total_messages: 0, total_tokens: 0, active_users: 0 });
@@ -103,7 +134,6 @@ export default function Admin() {
     acessosPorArea: []
   });
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [ragStats, setRagStats] = useState({
     totalDocuments: 0,
@@ -130,46 +160,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (user) {
-      checkAdminStatus();
       loadProfiles();
       loadStats();
       loadMaxKPIs();
       loadRagStats();
     }
-  }, [user]);
-
-  const checkAdminStatus = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-      
-      if (data?.role !== 'admin') {
-        setIsAdmin(false);
-        toast({
-          title: "Acesso negado",
-          description: "Você não tem permissão para acessar esta área.",
-          variant: "destructive",
-        });
-      } else {
-        setIsAdmin(true);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao verificar permissões",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, isAdmin]);
 
   const loadProfiles = async () => {
     try {
@@ -577,7 +573,7 @@ export default function Admin() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

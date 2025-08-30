@@ -118,14 +118,19 @@ export default function Admin() {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
+        console.log('Admin check: Usuário não encontrado');
         setIsAdmin(false);
         return;
       }
 
+      console.log('Admin check: Verificando usuário:', user.email);
+      
       // Verificar se o email é do Charles Wellington Andrade
       if (user.email === 'cwa.andrade@gmail.com') {
+        console.log('Admin check: Email válido, definindo como admin');
         setIsAdmin(true);
       } else {
+        console.log('Admin check: Email inválido, não é admin');
         setIsAdmin(false);
       }
     };
@@ -575,6 +580,7 @@ export default function Admin() {
   }
 
   if (!isAdmin) {
+    console.log('Admin check: Usuário não é admin, redirecionando para chat. User email:', user?.email, 'isAdmin:', isAdmin);
     return <Navigate to="/chat" replace />;
   }
 

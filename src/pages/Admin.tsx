@@ -82,7 +82,6 @@ interface MaxKPIs {
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Função helper para formatar tempo
   const formatarTempo = (ms: number): string => {
@@ -91,36 +90,6 @@ export default function Admin() {
     }
     return `${(ms / 1000).toFixed(1)} s`;
   };
-
-  // Verificar se o usuário é admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error || !data) {
-          setIsAdmin(false);
-          return;
-        }
-
-        setIsAdmin(data.role === 'admin');
-      } catch (error) {
-        console.error('Erro ao verificar status de admin:', error);
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [stats, setStats] = useState<UsageStats>({ total_messages: 0, total_tokens: 0, active_users: 0 });
@@ -165,7 +134,7 @@ export default function Admin() {
       loadMaxKPIs();
       loadRagStats();
     }
-  }, [user, isAdmin]);
+  }, [user]);
 
   const loadProfiles = async () => {
     try {
@@ -573,7 +542,7 @@ export default function Admin() {
     }
   };
 
-  if (authLoading || isAdmin === null) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -583,10 +552,6 @@ export default function Admin() {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/chat" replace />;
   }
 
   return (
@@ -1127,23 +1092,18 @@ export default function Admin() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {!isAdmin ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Acesso restrito a administradores</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">ℹ️ Informações sobre os Modelos</h4>
-                      <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                        <p><strong>GPT-5:</strong> Modelo mais avançado disponível</p>
-                        <p><strong>GPT-5 Mini:</strong> Versão mais rápida e econômica do GPT-5</p>
-                        <p><strong>GPT-4.1:</strong> Modelo principal recomendado para uso geral</p>
-                        <p><strong>O3/O4:</strong> Modelos especializados em raciocínio complexo</p>
-                      </div>
+                <div className="space-y-4">
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">ℹ️ Informações sobre os Modelos</h4>
+                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                      <p><strong>GPT-5:</strong> Modelo mais avançado disponível</p>
+                      <p><strong>GPT-5 Mini:</strong> Versão mais rápida e econômica do GPT-5</p>
+                      <p><strong>GPT-4.1:</strong> Modelo principal recomendado para uso geral</p>
+                      <p><strong>O3/O4:</strong> Modelos especializados em raciocínio complexo</p>
                     </div>
-                    
-                    {profiles.map((profile) => (
+                  </div>
+                  
+                  {profiles.map((profile) => (
                       <div
                         key={profile.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -1213,8 +1173,7 @@ export default function Admin() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

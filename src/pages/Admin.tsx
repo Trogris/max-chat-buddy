@@ -82,6 +82,7 @@ interface MaxKPIs {
 
 export default function Admin() {
   const { user, loading: authLoading, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Função helper para formatar tempo
   const formatarTempo = (ms: number): string => {
@@ -113,6 +114,25 @@ export default function Admin() {
   const [loadingRagStats, setLoadingRagStats] = useState(true);
   const [ingestingAll, setIngestingAll] = useState(false);
 
+  // Verificar se o usuário é admin (apenas Charles Wellington Andrade)
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      // Verificar se o email é do Charles Wellington Andrade
+      if (user.email === 'cwa.andrade@gmail.com') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
+
   const areas = [
     'Não informado',
     'Produção e MI',
@@ -128,13 +148,13 @@ export default function Admin() {
   ];
 
   useEffect(() => {
-    if (user) {
+    if (user && isAdmin) {
       loadProfiles();
       loadStats();
       loadMaxKPIs();
       loadRagStats();
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   const loadProfiles = async () => {
     try {
@@ -542,7 +562,7 @@ export default function Admin() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -552,6 +572,10 @@ export default function Admin() {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/chat" replace />;
   }
 
   return (

@@ -21,7 +21,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { 
+import {
   MessageSquare, 
   Send, 
   LogOut, 
@@ -30,7 +30,7 @@ import {
   Settings,
   Loader2,
   Menu,
-  X
+  ChevronLeft
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -151,7 +151,7 @@ function EnhancedSidebarTrigger() {
           aria-label={open ? "Fechar sidebar" : "Abrir sidebar"}
         >
           {open ? (
-            <X className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           ) : (
             <Menu className="h-4 w-4" />
           )}
@@ -229,6 +229,13 @@ export default function Chat() {
       trackSession();
     }
   }, [user]);
+
+  // Auto-create conversation if none exists
+  useEffect(() => {
+    if (user && conversations.length === 0 && !currentConversation && !loading) {
+      createNewConversation();
+    }
+  }, [user, conversations, currentConversation, loading]);
 
 
   // Auto-select first conversation if none is selected

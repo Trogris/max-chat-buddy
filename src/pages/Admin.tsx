@@ -28,7 +28,8 @@ import {
   X,
   Database,
   FileText,
-  Zap
+  Zap,
+  Download
 } from 'lucide-react';
 
 interface Profile {
@@ -1151,23 +1152,50 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                    <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Arquivos Disponíveis na Pasta</h4>
-                    <div className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1">
-                      <p>Os arquivos do Max Agent estão disponíveis em: <strong>streamlit_max_agent/</strong></p>
-                      <p>Copie manualmente todos os arquivos desta pasta para seu projeto.</p>
+                  <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <h4 className="font-medium text-primary mb-2">📦 Download Completo</h4>
+                    <div className="text-sm text-muted-foreground space-y-2 mb-4">
+                      <p>Baixe todos os arquivos do Max Agent Python/Streamlit prontos para uso:</p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li>Sistema RAG completo com ChromaDB</li>
+                        <li>Interface Streamlit interativa</li>
+                        <li>Integração com OpenAI (GPT-4, GPT-3.5-turbo)</li>
+                        <li>Processamento de documentos (PDF, DOCX, TXT)</li>
+                        <li>Prompt personalizado do Max</li>
+                      </ul>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
+                        <a 
+                          href="./streamlit_max_agent/"
+                          className="flex items-center gap-2"
+                          target="_blank"
+                        >
+                          <Download className="h-4 w-4" />
+                          Acessar Arquivos
+                        </a>
+                      </Button>
+                      <Button variant="outline" asChild>
+                        <a 
+                          href="./max-agent-instructions.txt" 
+                          target="_blank"
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Ver Instruções
+                        </a>
+                      </Button>
                     </div>
                   </div>
 
                   <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">📦 Funcionalidades Incluídas</h4>
+                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">📋 Como Usar</h4>
                     <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
-                      <p>• Sistema RAG completo com ChromaDB</p>
-                      <p>• Integração com modelos OpenAI (GPT-4, GPT-3.5-turbo)</p>
-                      <p>• Interface Streamlit para testes</p>
-                      <p>• Processamento de documentos (PDF, DOCX, TXT)</p>
-                      <p>• Prompt personalizado do Max</p>
-                      <p>• Configuração para deploy no Streamlit Cloud</p>
+                      <p><strong>1.</strong> Acesse o link "Acessar Arquivos" acima</p>
+                      <p><strong>2.</strong> Copie todos os arquivos para seu projeto</p>
+                      <p><strong>3.</strong> Configure sua OPENAI_API_KEY no arquivo .env</p>
+                      <p><strong>4.</strong> Execute: pip install -r requirements.txt</p>
+                      <p><strong>5.</strong> Inicie: streamlit run streamlit_app.py</p>
                     </div>
                   </div>
                   
@@ -1178,17 +1206,17 @@ export default function Admin() {
                       </div>
                       <div>
                         <h4 className="font-medium">Instruções Detalhadas</h4>
-                        <p className="text-sm text-muted-foreground">Como usar os arquivos do Max Agent</p>
+                        <p className="text-sm text-muted-foreground">Guia completo de instalação e uso</p>
                       </div>
                     </div>
-                    <Button asChild>
+                    <Button variant="outline" asChild>
                       <a 
                         href="./max-agent-instructions.txt" 
                         target="_blank"
                         className="flex items-center gap-2"
                       >
                         <FileText className="h-4 w-4" />
-                        Ver Instruções
+                        Abrir Guia
                       </a>
                     </Button>
                   </div>

@@ -120,19 +120,26 @@ function AppSidebar({
           <span className="truncate flex-1">{user?.email}</span>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1" 
+          <a 
+            href="/admin"
+            className="flex-1"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              window.location.href = '/admin';
+              // Usar navigate diretamente
+              window.open('/admin', '_self');
             }}
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Admin
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              type="button"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
+          </a>
           <Button variant="outline" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4" />
           </Button>

@@ -116,10 +116,9 @@ export default function Admin() {
 
   // Verificar se o usuário é admin (apenas Charles Wellington Andrade)
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        console.log('Admin check: Usuário não encontrado');
-        setIsAdmin(false);
+    const checkAdminStatus = () => {
+      if (!user?.email) {
+        console.log('Admin check: Email não disponível ainda');
         return;
       }
 
@@ -135,8 +134,12 @@ export default function Admin() {
       }
     };
 
-    checkAdminStatus();
-  }, [user]);
+    if (user) {
+      checkAdminStatus();
+    } else {
+      setIsAdmin(null);
+    }
+  }, [user?.email]); // Mudei para user?.email para ser mais específico
 
   const areas = [
     'Não informado',

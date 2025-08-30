@@ -220,18 +220,17 @@ serve(async (req) => {
       });
     }
 
-    // Get user's preferred model from profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('preferred_model')
-      .eq('user_id', user.id)
+    // Get global AI model from ai_settings
+    const { data: aiSettings, error: settingsError } = await supabase
+      .from('ai_settings')
+      .select('current_model')
       .single();
 
-    if (profileError) {
-      console.error('Erro ao buscar perfil:', profileError);
+    if (settingsError) {
+      console.error('Erro ao buscar configurações AI:', settingsError);
     }
 
-    const selectedModel = profile?.preferred_model || 'gpt-4.1-2025-04-14';
+    const selectedModel = aiSettings?.current_model || 'gpt-4.1-2025-04-14';
     console.log('Usando modelo do perfil:', selectedModel, 'para usuário:', user.id);
 
     console.log('=== NOVA CONSULTA ===');

@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_settings: {
+        Row: {
+          current_model: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          current_model?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          current_model?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       company_document_chunks: {
         Row: {
           chunk_index: number

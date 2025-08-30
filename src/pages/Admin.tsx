@@ -1183,7 +1183,7 @@ export default function Admin() {
                     </div>
                     <Button asChild>
                       <a 
-                        href="/max-agent-instructions.txt" 
+                        href="./max-agent-instructions.txt" 
                         target="_blank"
                         className="flex items-center gap-2"
                       >

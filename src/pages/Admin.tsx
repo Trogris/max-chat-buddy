@@ -1153,9 +1153,9 @@ export default function Admin() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                    <h4 className="font-medium text-primary mb-2">📦 Download Completo</h4>
+                    <h4 className="font-medium text-primary mb-2">📦 Arquivos do Max Agent</h4>
                     <div className="text-sm text-muted-foreground space-y-2 mb-4">
-                      <p>Baixe todos os arquivos do Max Agent Python/Streamlit prontos para uso:</p>
+                      <p>Acesse os arquivos individuais do Max Agent Python/Streamlit:</p>
                       <ul className="list-disc list-inside space-y-1 text-xs">
                         <li>Sistema RAG completo com ChromaDB</li>
                         <li>Interface Streamlit interativa</li>
@@ -1164,15 +1164,47 @@ export default function Admin() {
                         <li>Prompt personalizado do Max</li>
                       </ul>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/README.md" download className="text-xs">
+                          📄 README.md
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/requirements.txt" download className="text-xs">
+                          📋 requirements.txt
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/streamlit_app.py" download className="text-xs">
+                          🐍 streamlit_app.py
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/.env.example" download className="text-xs">
+                          ⚙️ .env.example
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/agent/config.py" download className="text-xs">
+                          🔧 config.py
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="./streamlit_max_agent/prompts/system_max.pt.txt" download className="text-xs">
+                          💬 system_max.pt.txt
+                        </a>
+                      </Button>
+                    </div>
                     <div className="flex gap-3">
                       <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
                         <a 
-                          href="./streamlit_max_agent/"
+                          href="./streamlit_max_agent.zip"
+                          download="streamlit_max_agent.zip"
                           className="flex items-center gap-2"
-                          target="_blank"
                         >
                           <Download className="h-4 w-4" />
-                          Acessar Arquivos
+                          Download ZIP Completo
                         </a>
                       </Button>
                       <Button variant="outline" asChild>

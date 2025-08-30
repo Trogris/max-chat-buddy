@@ -244,12 +244,7 @@ export default function Chat() {
     }
   }, [user]);
 
-  // Auto-create conversation if none exists
-  useEffect(() => {
-    if (user && conversations.length === 0 && !currentConversation && !loading) {
-      createNewConversation();
-    }
-  }, [user, conversations, currentConversation, loading]);
+  // Removed auto-create conversation - users should click "Nova Conversa" manually
 
 
   // Auto-select first conversation if none is selected

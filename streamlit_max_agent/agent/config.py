@@ -28,7 +28,7 @@ class Config:
     
     # Configurações do Chat
     MAX_TOKENS = 4000
-    TEMPERATURE = 0.7
+    TEMPERATURE = 0.9
     
     @classmethod
     def validate(cls):

@@ -157,10 +157,10 @@ const GlobalModelSelector = () => {
               <p className="text-sm text-muted-foreground">{currentModelInfo?.description}</p>
             </div>
             <Badge variant={getBadgeVariant(currentModelInfo?.type || 'standard')}>
-              {currentModelInfo?.type === 'premium' && '⭐ Premium'}
-              {currentModelInfo?.type === 'reasoning' && '🧠 Raciocínio'}
-              {currentModelInfo?.type === 'legacy' && '📜 Legado'}
-              {currentModelInfo?.type === 'standard' && '✅ Padrão'}
+              {currentModelInfo?.type === 'premium' && 'Premium'}
+              {currentModelInfo?.type === 'reasoning' && 'Raciocínio'}
+              {currentModelInfo?.type === 'legacy' && 'Legado'}
+              {currentModelInfo?.type === 'standard' && 'Padrão'}
             </Badge>
           </div>
         </CardContent>
@@ -192,10 +192,10 @@ const GlobalModelSelector = () => {
                         variant={getBadgeVariant(model.type)} 
                         className="text-xs"
                       >
-                        {model.type === 'premium' && '⭐'}
-                        {model.type === 'reasoning' && '🧠'}
-                        {model.type === 'legacy' && '📜'}
-                        {model.type === 'standard' && '✅'}
+                        {model.type === 'premium' && 'Premium'}
+                        {model.type === 'reasoning' && 'Raciocínio'}
+                        {model.type === 'legacy' && 'Legado'}
+                        {model.type === 'standard' && 'Padrão'}
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">{model.description}</span>

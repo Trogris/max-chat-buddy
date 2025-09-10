@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import DocumentManager from '@/components/DocumentManager';
 import GlobalModelSelector from '@/components/GlobalModelSelector';
+import MaxAvatarUpload from '@/components/MaxAvatarUpload';
 import { 
   Users, 
   MessageSquare, 
@@ -865,6 +866,17 @@ export default function Admin() {
                 ) : (
                   <p className="text-sm text-muted-foreground">Sem dados suficientes.</p>
                 )}
+              </div>
+            </div>
+
+            {/* Configuração do Avatar do Max */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                Configuração do Max
+              </h3>
+              <div className="max-w-md">
+                <MaxAvatarUpload />
               </div>
             </div>
           </TabsContent>

@@ -1,11 +1,12 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useMaxAvatar } from '@/hooks/useMaxAvatar';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Users, BarChart3, Shield } from 'lucide-react';
-import maxAvatar from '@/assets/max-avatar.png';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { avatarUrl } = useMaxAvatar();
   
   console.log('Index - rendering:', { user: !!user, loading });
 
@@ -31,7 +32,7 @@ const Index = () => {
           <div className="flex justify-center mb-6">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
               <img 
-                src={maxAvatar} 
+                src={avatarUrl} 
                 alt="Max - Assistente Virtual da Fiscaltech" 
                 className="w-full h-full object-cover"
               />

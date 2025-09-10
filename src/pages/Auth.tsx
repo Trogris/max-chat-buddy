@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useMaxAvatar } from '@/hooks/useMaxAvatar';
 import { Loader2 } from 'lucide-react';
-import maxAvatar from '@/assets/max-avatar.png';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -15,6 +15,7 @@ export default function Auth() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, signIn, signUp } = useAuth();
+  const { avatarUrl } = useMaxAvatar();
 
   // Redirect if already logged in
   if (user) {
@@ -42,7 +43,7 @@ export default function Auth() {
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
               <img 
-                src={maxAvatar} 
+                src={avatarUrl} 
                 alt="Max - Seu Assistente Virtual na Fiscaltech" 
                 className="w-full h-full object-cover"
               />

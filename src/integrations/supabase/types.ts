@@ -16,18 +16,21 @@ export type Database = {
     Tables: {
       ai_settings: {
         Row: {
+          avatar_url: string | null
           current_model: string
           id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          avatar_url?: string | null
           current_model?: string
           id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          avatar_url?: string | null
           current_model?: string
           id?: string
           updated_at?: string

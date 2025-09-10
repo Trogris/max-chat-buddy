@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import maxAvatar from '@/assets/max-avatar.png';
+import { useMaxAvatar } from '@/hooks/useMaxAvatar';
 
 interface Message {
   id: string;
@@ -181,6 +181,7 @@ function EnhancedSidebarTrigger() {
 // Chat component with sidebar integration
 export default function Chat() {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { avatarUrl } = useMaxAvatar();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -638,7 +639,7 @@ export default function Chat() {
                         {message.role === 'assistant' && (
                           <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
                             <img 
-                              src={maxAvatar} 
+                              src={avatarUrl}
                               alt="Max" 
                               className="w-full h-full object-cover"
                             />
@@ -661,7 +662,7 @@ export default function Chat() {
                       <div className="flex gap-3 items-start">
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
                           <img 
-                            src={maxAvatar} 
+                            src={avatarUrl} 
                             alt="Max" 
                             className="w-full h-full object-cover"
                           />

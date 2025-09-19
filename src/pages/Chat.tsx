@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,24 +87,24 @@ function AppSidebar({
             <SidebarMenu>
               {conversations.map((conv) => (
                 <SidebarMenuItem key={conv.id}>
-                  <SidebarMenuButton
-                    isActive={currentConversation === conv.id}
-                    onClick={() => onConversationSelect(conv.id)}
-                    className="group flex items-center justify-between w-full"
-                  >
-                    <span className="text-sm truncate flex-1">{conv.title}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                  <div className="group flex items-center justify-between w-full">
+                    <SidebarMenuButton
+                      isActive={currentConversation === conv.id}
+                      onClick={() => onConversationSelect(conv.id)}
+                      className="flex-1 text-left"
+                    >
+                      <span className="text-sm truncate">{conv.title}</span>
+                    </SidebarMenuButton>
+                    <button
+                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground rounded-md inline-flex items-center justify-center"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteConversation(conv.id);
                       }}
                     >
                       <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </SidebarMenuButton>
+                    </button>
+                  </div>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -193,6 +193,30 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionStartRef = useRef<number>(Date.now());
+  const sessionTracked = useRef<boolean>(false);
+  const conversationsLoaded = useRef<boolean>(false);
+  
+  // Otimização: memoizar a função de carregamento de mensagens  
+  const loadMessagesOptimized = useCallback(async (conversationId: string) => {
+    if (!conversationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      setMessages(data as Message[] || []);
+    } catch (error) {
+      toast({
+        title: "Erro ao carregar mensagens", 
+        description: "Não foi possível carregar as mensagens.",
+        variant: "destructive",
+      });
+    }
+  }, []);
 
   // Keyboard shortcut for toggling sidebar (Ctrl+B)
   useEffect(() => {
@@ -238,10 +262,14 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !conversationsLoaded.current) {
+      conversationsLoaded.current = true;
       ensureUserProfile();
       loadConversations();
-      trackSession();
+      if (!sessionTracked.current) {
+        sessionTracked.current = true;
+        trackSession();
+      }
     }
   }, [user]);
 
@@ -252,16 +280,16 @@ export default function Chat() {
   useEffect(() => {
     if (conversations.length > 0 && !currentConversation) {
       setCurrentConversation(conversations[0].id);
-      loadMessages(conversations[0].id);
+      loadMessagesOptimized(conversations[0].id);
     }
-  }, [conversations, currentConversation]);
+  }, [conversations, currentConversation, loadMessagesOptimized]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const trackSession = async () => {
-    if (!user) return;
+    if (!user || sessionTracked.current) return;
     
     try {
       await supabase.from('usage_stats').insert({
@@ -271,6 +299,7 @@ export default function Chat() {
         tokens_count: 0,
       });
       sessionStartRef.current = Date.now();
+      sessionTracked.current = true;
     } catch (error) {
       console.error('Error tracking session:', error);
     }
@@ -344,6 +373,8 @@ export default function Chat() {
   };
 
   const loadMessages = async (conversationId: string) => {
+    if (!conversationId) return;
+    
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -362,6 +393,7 @@ export default function Chat() {
     }
   };
 
+
   const createNewConversation = async () => {
     if (!user) return;
     
@@ -379,7 +411,8 @@ export default function Chat() {
       
       setCurrentConversation(data.id);
       setMessages([]);
-      loadConversations();
+      // Adicionar conversa ao estado local em vez de recarregar tudo
+      setConversations(prev => [data, ...prev]);
     } catch (error) {
       toast({
         title: "Erro ao criar conversa",
@@ -403,7 +436,8 @@ export default function Chat() {
         setMessages([]);
       }
       
-      loadConversations();
+      // Remover conversa do estado local em vez de recarregar tudo
+      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
       toast({
         title: "Conversa excluída",
         description: "A conversa foi removida com sucesso.",
@@ -533,11 +567,20 @@ export default function Chat() {
 
       // Update conversation title if it's the first message
       if (messages.length === 0) {
+        const newTitle = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
         await supabase
           .from('conversations')
-          .update({ title: userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '') })
+          .update({ title: newTitle })
           .eq('id', currentConversation);
-        loadConversations();
+        
+        // Atualizar título no estado local em vez de recarregar tudo
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.id === currentConversation 
+              ? { ...conv, title: newTitle }
+              : conv
+          )
+        );
       }
 
       await updateSessionStats({ deltaMessages: 2, tokensDelta: tokensUsed, error: false, responseTimeMs });

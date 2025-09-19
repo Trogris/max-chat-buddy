@@ -1,355 +1,53 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Navigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Send, MessageSquare, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
+import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarFooter,
-  SidebarInset,
-  useSidebar,
-} from '@/components/ui/sidebar';
-import {
-  MessageSquare, 
-  Send, 
-  LogOut, 
-  Plus, 
-  Trash2, 
-  Settings,
-  Loader2,
-  Menu,
-  ChevronLeft
-} from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMaxAvatar } from '@/hooks/useMaxAvatar';
+import { GlobalModelSelector } from '@/components/GlobalModelSelector';
+import { DocumentManager } from '@/components/DocumentManager';
 
 interface Message {
   id: string;
+  conversation_id: string;
   content: string;
   role: 'user' | 'assistant';
+  tokens: number;
   created_at: string;
-  conversation_id?: string;
-  tokens?: number;
 }
 
 interface Conversation {
   id: string;
+  user_id: string;
   title: string;
   created_at: string;
+  updated_at: string;
 }
 
-function AppSidebar({ 
-  conversations, 
-  currentConversation, 
-  onConversationSelect, 
-  onNewConversation, 
-  onDeleteConversation,
-  user,
-  signOut 
-}: {
-  conversations: Conversation[];
-  currentConversation: string | null;
-  onConversationSelect: (id: string) => void;
-  onNewConversation: () => void;
-  onDeleteConversation: (id: string) => void;
-  user: any;
-  signOut: () => void;
-}) {
-  return (
-    <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">Max</h1>
-        </div>
-        <Button onClick={onNewConversation} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Conversa
-        </Button>
-      </SidebarHeader>
-      
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {conversations.map((conv) => (
-                <SidebarMenuItem key={conv.id}>
-                  <div className="group flex items-center justify-between w-full">
-                    <SidebarMenuButton
-                      isActive={currentConversation === conv.id}
-                      onClick={() => onConversationSelect(conv.id)}
-                      className="flex-1 text-left"
-                    >
-                      <span className="text-sm truncate">{conv.title}</span>
-                    </SidebarMenuButton>
-                    <button
-                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground rounded-md inline-flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteConversation(conv.id);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            {user?.email?.charAt(0).toUpperCase()}
-          </div>
-          <span className="truncate flex-1">{user?.email}</span>
-        </div>
-        <div className="flex gap-2">
-          <a 
-            href="/admin"
-            className="flex-1"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Usar navigate diretamente
-              window.open('/admin', '_self');
-            }}
-          >
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              type="button"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Admin
-            </Button>
-          </a>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </SidebarFooter>
-    </Sidebar>
-  );
-}
-
-// Enhanced sidebar trigger component
-function EnhancedSidebarTrigger() {
-  const { open, toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSidebar}
-          className="h-9 w-9 p-0 hover:bg-accent border border-border/40 hover:border-border"
-          aria-label={open ? "Fechar sidebar" : "Abrir sidebar"}
-        >
-          {open ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <Menu className="h-4 w-4" />
-          )}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="right" className="text-xs">
-        {open ? "Fechar" : "Abrir"} sidebar {!isMobile && "(Ctrl+B)"}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-// Chat component with sidebar integration
-export default function Chat() {
-  const { user, signOut, loading: authLoading } = useAuth();
-  const { avatarUrl } = useMaxAvatar();
+const Chat = () => {
+  const { user, session, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
-  const [edgeOk, setEdgeOk] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sessionStartRef = useRef<number>(Date.now());
-  const sessionTracked = useRef<boolean>(false);
-  const conversationsLoaded = useRef<boolean>(false);
-  
-  // Otimização: memoizar a função de carregamento de mensagens  
-  const loadMessagesOptimized = useCallback(async (conversationId: string) => {
-    if (!conversationId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      setMessages(data as Message[] || []);
-    } catch (error) {
-      toast({
-        title: "Erro ao carregar mensagens", 
-        description: "Não foi possível carregar as mensagens.",
-        variant: "destructive",
-      });
-    }
-  }, []);
+  const sessionId = useRef(Math.random().toString(36).substring(7));
 
-  // Keyboard shortcut for toggling sidebar (Ctrl+B)
-  useEffect(() => {
-    const handleKeyboardShortcut = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
-        event.preventDefault();
-        const sidebar = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
-        if (sidebar) {
-          const trigger = sidebar.parentElement?.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
-          if (trigger) {
-            trigger.click();
-          }
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyboardShortcut);
-    return () => document.removeEventListener('keydown', handleKeyboardShortcut);
-  }, []);
-
-  const ensureUserProfile = async () => {
-    if (!user) return;
-
-    try {
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!existingProfile) {
-        await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id,
-            name: user.email?.split('@')[0] || 'Usuário',
-            role: 'admin'
-          });
-      }
-    } catch (error) {
-      console.error('Erro ao criar perfil:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (user && !conversationsLoaded.current) {
-      conversationsLoaded.current = true;
-      ensureUserProfile();
-      loadConversations();
-      if (!sessionTracked.current) {
-        sessionTracked.current = true;
-        trackSession();
-      }
-    }
-  }, [user]);
-
-  // Removed auto-create conversation - users should click "Nova Conversa" manually
-
-
-  // Auto-select first conversation if none is selected
-  useEffect(() => {
-    if (conversations.length > 0 && !currentConversation) {
-      setCurrentConversation(conversations[0].id);
-      loadMessagesOptimized(conversations[0].id);
-    }
-  }, [conversations, currentConversation, loadMessagesOptimized]);
+  const { avatarUrl } = useMaxAvatar();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const trackSession = async () => {
-    if (!user || sessionTracked.current) return;
-    
-    try {
-      await supabase.from('usage_stats').insert({
-        user_id: user.id,
-        session_id: sessionId,
-        messages_count: 0,
-        tokens_count: 0,
-      });
-      sessionStartRef.current = Date.now();
-      sessionTracked.current = true;
-    } catch (error) {
-      console.error('Error tracking session:', error);
-    }
-  };
-
-  const updateSessionStats = async ({
-    deltaMessages,
-    tokensDelta,
-    error,
-    responseTimeMs,
-  }: { deltaMessages: number; tokensDelta: number; error: boolean; responseTimeMs: number }) => {
-    if (!user) return;
-
-    try {
-      // Read current session stats
-      const { data: current } = await supabase
-        .from('usage_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('session_id', sessionId)
-        .maybeSingle();
-
-      const prevMessages = current?.messages_count || 0;
-      const prevTokens = current?.tokens_count || 0;
-      const prevErrors = current?.error_count || 0;
-
-      const newMessages = prevMessages + deltaMessages;
-      const newTokens = prevTokens + tokensDelta;
-      const newErrors = prevErrors + (error ? 1 : 0);
-      const interactions = Math.max(1, Math.floor(newMessages / 2));
-      const successRate = Math.max(0, Math.min(100, ((interactions - newErrors) / interactions) * 100));
-
-      await supabase
-        .from('usage_stats')
-        .update({
-          messages_count: newMessages,
-          tokens_count: newTokens,
-          error_count: newErrors,
-          success_rate: successRate,
-          response_time_ms: responseTimeMs,
-          session_end: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .eq('session_id', sessionId);
-    } catch (error) {
-      console.error('Error updating session stats:', error);
-    }
-  };
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -361,18 +59,16 @@ export default function Chat() {
       
       if (error) throw error;
       setConversations(data || []);
-      setSupabaseOk(true);
     } catch (error) {
-      setSupabaseOk(false);
       toast({
         title: "Erro ao carregar conversas",
         description: "Não foi possível carregar o histórico.",
         variant: "destructive",
       });
     }
-  };
+  }, [user, toast]);
 
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = useCallback(async (conversationId: string) => {
     if (!conversationId) return;
     
     try {
@@ -391,8 +87,20 @@ export default function Chat() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
+  useEffect(() => {
+    if (user) {
+      loadConversations();
+    }
+  }, [user, loadConversations]);
+
+  useEffect(() => {
+    if (conversations.length > 0 && !currentConversation) {
+      setCurrentConversation(conversations[0].id);
+      loadMessages(conversations[0].id);
+    }
+  }, [conversations, currentConversation, loadMessages]);
 
   const createNewConversation = async () => {
     if (!user) return;
@@ -411,7 +119,6 @@ export default function Chat() {
       
       setCurrentConversation(data.id);
       setMessages([]);
-      // Adicionar conversa ao estado local em vez de recarregar tudo
       setConversations(prev => [data, ...prev]);
     } catch (error) {
       toast({
@@ -422,192 +129,122 @@ export default function Chat() {
     }
   };
 
-  const deleteConversation = async (conversationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId);
-      
-      if (error) throw error;
-      
-      if (currentConversation === conversationId) {
-        setCurrentConversation(null);
-        setMessages([]);
-      }
-      
-      // Remover conversa do estado local em vez de recarregar tudo
-      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-      toast({
-        title: "Conversa excluída",
-        description: "A conversa foi removida com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao excluir conversa",
-        description: "Não foi possível excluir a conversa.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const sendMessage = async () => {
-    if (!inputValue.trim() || !currentConversation || !user || loading) return;
+    if (!inputValue.trim() || loading) return;
 
     const userMessage = inputValue.trim();
     setInputValue('');
     setLoading(true);
-    const startedAt = Date.now();
 
     try {
-      // Add user message to database
-      const { data: userMsgData, error: userMsgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: currentConversation,
-          content: userMessage,
-          role: 'user',
-        })
-        .select()
-        .single();
+      let conversationId = currentConversation;
 
-      if (userMsgError) throw userMsgError;
+      // Create conversation if none exists
+      if (!conversationId) {
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            user_id: user?.id,
+            title: userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : ''),
+          })
+          .select()
+          .single();
 
-      // Update messages state
-      setMessages(prev => [...prev, userMsgData as Message]);
+        if (convError) throw convError;
+        
+        conversationId = newConv.id;
+        setCurrentConversation(conversationId);
+        setConversations(prev => [newConv, ...prev]);
+      }
 
-      // Prepare conversation history for AI context (last 10 messages)
+      // Add user message to UI
+      const userMsgData: Message = {
+        id: Date.now().toString(),
+        conversation_id: conversationId,
+        content: userMessage,
+        role: 'user',
+        tokens: 0,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMsgData]);
+
+      // Create empty AI message for streaming
+      const aiMessageId = (Date.now() + 1).toString();
+      const aiMessage: Message = {
+        id: aiMessageId,
+        conversation_id: conversationId,
+        content: '',
+        role: 'assistant',
+        tokens: 0,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Start streaming
       const conversationHistory = messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content
       }));
 
-      console.log('Enviando para AI com histórico:', {
-        message: userMessage,
-        historyLength: conversationHistory.length
-      });
-
-      // Call AI with conversation history
-      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('chat-ai', {
-        body: {
+      const response = await fetch('https://dcrbacdjfbgpvzbbcwws.supabase.co/functions/v1/chat-ai', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjcmJhY2RqZmJncHZ6YmJjd3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NDEzMjMsImV4cCI6MjA3MTUxNzMyM30.5ovxFfO1orfUbc3LUrRyDl3vMjENetMaaqV6DmQ-BWA',
+        },
+        body: JSON.stringify({
           message: userMessage,
-          conversationHistory: conversationHistory,
-          conversationId: currentConversation,
-        }
+          conversationHistory,
+          conversationId
+        }),
       });
-      const responseTimeMs = Date.now() - startedAt;
 
-      console.log('Resposta da AI:', aiResponse, aiError);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-      if (aiError) throw aiError;
-      setEdgeOk(true);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
 
-      // Normalize AI response shape
-      // If the Edge Function returned an error in the body, surface it
-      if (aiResponse && typeof aiResponse === 'object' && 'error' in aiResponse && (aiResponse as any).error) {
-        throw new Error((aiResponse as any).error);
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              loadConversations();
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content && parsed.type === 'chunk') {
+                accumulatedContent += parsed.content;
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ));
+              }
+            } catch (parseError) {
+              continue;
+            }
+          }
+        }
       }
-
-      const answerText = (aiResponse && typeof aiResponse === 'object' && 'response' in aiResponse)
-        ? (aiResponse as any).response
-        : (typeof aiResponse === 'string' ? aiResponse : (
-            aiResponse && typeof aiResponse === 'object' && 'generatedText' in aiResponse
-              ? (aiResponse as any).generatedText
-              : null
-          ));
-
-      const tokensUsed = (aiResponse && typeof aiResponse === 'object' && 'tokens' in aiResponse)
-        ? (aiResponse as any).tokens || 0
-        : 0;
-
-      if (!answerText) {
-        console.warn('AI returned unexpected payload:', aiResponse);
-        const fallback = 'Não consegui gerar uma resposta agora. Tente novamente em instantes.';
-        // Show fallback to the user
-        const aiMessage: Message = {
-          id: Math.random().toString(),
-          content: fallback,
-          role: 'assistant',
-          created_at: new Date().toISOString(),
-          conversation_id: currentConversation,
-          tokens: 0,
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        return;
-      }
-
-      // Add AI response to database
-      const { data: aiMsgData, error: aiMsgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: currentConversation,
-          content: answerText,
-          role: 'assistant',
-          tokens: tokensUsed,
-        })
-        .select()
-        .single();
-
-      if (aiMsgError) {
-        console.error('Erro ao salvar mensagem AI:', aiMsgError);
-        // Even if DB save fails, show the message to user
-        const aiMessage: Message = {
-          id: Math.random().toString(),
-          content: answerText,
-          role: 'assistant',
-          created_at: new Date().toISOString(),
-          conversation_id: currentConversation,
-          tokens: tokensUsed
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      } else {
-        // Update messages state
-        setMessages(prev => [...prev, aiMsgData as Message]);
-      }
-
-      // Update conversation title if it's the first message
-      if (messages.length === 0) {
-        const newTitle = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
-        await supabase
-          .from('conversations')
-          .update({ title: newTitle })
-          .eq('id', currentConversation);
-        
-        // Atualizar título no estado local em vez de recarregar tudo
-        setConversations(prev => 
-          prev.map(conv => 
-            conv.id === currentConversation 
-              ? { ...conv, title: newTitle }
-              : conv
-          )
-        );
-      }
-
-      await updateSessionStats({ deltaMessages: 2, tokensDelta: tokensUsed, error: false, responseTimeMs });
-
-    } catch (error: any) {
-      console.error('Erro completo:', error);
-      setEdgeOk(false);
-      
-      // Show error message in chat
-      const errorMessage: Message = {
-        id: Math.random().toString(),
-        content: `Erro: ${error.message || 'Não foi possível processar sua mensagem. Tente novamente.'}`,
-        role: 'assistant',
-        created_at: new Date().toISOString(),
-        conversation_id: currentConversation,
-        tokens: 0
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      
+    } catch (error) {
+      console.error('Error:', error);
       toast({
         title: "Erro ao enviar mensagem",
-        description: error.message || "Ocorreu um erro inesperado.",
+        description: "Não foi possível processar sua mensagem.",
         variant: "destructive",
       });
-
-      // Update session stats on error as well
-      await updateSessionStats({ deltaMessages: 2, tokensDelta: 0, error: true, responseTimeMs: Date.now() - startedAt });
     } finally {
       setLoading(false);
     }
@@ -634,126 +271,107 @@ export default function Chat() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar
-          conversations={conversations}
-          currentConversation={currentConversation}
-          onConversationSelect={(id) => {
-            setCurrentConversation(id);
-            loadMessages(id);
-          }}
-          onNewConversation={createNewConversation}
-          onDeleteConversation={deleteConversation}
-          user={user}
-          signOut={signOut}
-        />
-        
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <EnhancedSidebarTrigger />
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Max</h1>
+      <div className="flex h-screen w-full">
+        <Sidebar className="w-80">
+          <SidebarHeader className="border-b p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Conversas</h2>
+              <Button onClick={createNewConversation} size="sm" variant="ghost">
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              {supabaseOk === false && (
-                <span>
-                  Supabase: <span className="text-destructive">Falha</span>
-                </span>
-              )}
-              {edgeOk === false && (
-                <span>
-                  Edge: <span className="text-destructive">Falha</span>
-                </span>
-              )}
-            </div>
-          </header>
-
-          {currentConversation ? (
-            <div className="flex flex-1 flex-col">
-              <ScrollArea className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          </SidebarHeader>
+          <SidebarContent>
+            <ScrollArea className="flex-1">
+              <SidebarMenu>
+                {conversations.map((conversation) => (
+                  <SidebarMenuItem key={conversation.id}>
+                    <SidebarMenuButton
+                      onClick={() => {
+                        setCurrentConversation(conversation.id);
+                        loadMessages(conversation.id);
+                      }}
+                      isActive={currentConversation === conversation.id}
+                      className="w-full justify-start p-2 group"
                     >
-                      <div className={`flex gap-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                        {message.role === 'assistant' && (
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                            <img 
-                              src={avatarUrl}
-                              alt="Max" 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div
-                          className={`p-4 rounded-lg ${
-                            message.role === 'user'
-                              ? 'bg-chat-user text-foreground'
-                              : 'bg-chat-assistant text-foreground border'
-                          }`}
-                        >
-                          <div className="whitespace-pre-wrap">{message.content}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {loading && (
-                    <div className="flex justify-start">
-                      <div className="flex gap-3 items-start">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                          <img 
-                            src={avatarUrl} 
-                            alt="Max" 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="bg-chat-assistant border p-4 rounded-lg flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Max está pensando...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      <span className="truncate flex-1 text-left">
+                        {conversation.title}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </ScrollArea>
+          </SidebarContent>
+        </Sidebar>
 
-              <div className="p-3 sm:p-4 border-t bg-background/95 backdrop-blur-sm">
-                <div className="max-w-4xl mx-auto flex gap-2">
-                  <Input
-                    placeholder="Digite sua mensagem para o Max..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={loading}
-                    className="flex-1 h-10 sm:h-10"
-                  />
-                  <Button 
-                    onClick={sendMessage} 
-                    disabled={loading || !inputValue.trim()}
-                    className="h-10 px-3 sm:px-4"
+        <div className="flex-1 flex flex-col">
+          <div className="border-b p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger />
+              <div className="flex items-center gap-2">
+                {avatarUrl && (
+                  <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
+                )}
+                <span className="font-semibold">Max - Assistente Fiscaltech</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <GlobalModelSelector />
+              <DocumentManager />
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 p-4">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    }`}
                   >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  </div>
                 </div>
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Max</h2>
-                <p className="text-muted-foreground">
-                  Selecione uma conversa ou crie uma nova para começar
-                </p>
-              </div>
+          </ScrollArea>
+
+          <div className="border-t p-4">
+            <div className="max-w-4xl mx-auto flex gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Digite sua mensagem..."
+                className="flex-1"
+                disabled={loading}
+              />
+              <Button 
+                onClick={sendMessage} 
+                disabled={!inputValue.trim() || loading}
+                size="icon"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-          )}
-        </SidebarInset>
+          </div>
+        </div>
       </div>
     </SidebarProvider>
   );
-}
+};
+
+export default Chat;

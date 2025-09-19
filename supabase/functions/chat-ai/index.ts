@@ -260,6 +260,20 @@ serve(async (req) => {
       });
     }
 
+    // Save user message first
+    if (conversationId) {
+      try {
+        await supabase.from('messages').insert({
+          conversation_id: conversationId,
+          content: message,
+          role: 'user',
+          tokens: 0,
+        });
+      } catch (dbError) {
+        console.error('Erro ao salvar mensagem do usuário:', dbError);
+      }
+    }
+
     // Buscar chunks relevantes usando busca semântica
     const relevantContext = await searchRelevantChunks(message);
     console.log('Contexto encontrado, enviando para OpenAI...');
@@ -376,6 +390,7 @@ INSTRUÇÕES TÉCNICAS:
     const openaiRequest: any = {
       model: selectedModel,
       messages,
+      stream: true,
     };
 
     // Use appropriate token limit parameter based on model
@@ -400,63 +415,90 @@ INSTRUÇÕES TÉCNICAS:
       throw new Error(`Erro na API OpenAI: ${response.status} - ${errorData}`);
     }
 
-    const data = await response.json();
-    console.log('Resposta da OpenAI recebida com sucesso');
+    // Set up streaming response
+    const streamHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    };
 
-    // Extrair texto de forma resiliente (modelos novos podem variar o formato)
-    const choice = data?.choices?.[0] ?? {};
-    const messageContent = choice?.message ?? {};
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+        let tokenCount = 0;
 
-    function coerceToText(content: any): string {
-      if (!content) return '';
-      if (typeof content === 'string') return content;
-      if (Array.isArray(content)) {
         try {
-          return content
-            .map((part: any) =>
-              typeof part === 'string'
-                ? part
-                : (part?.text ?? part?.content ?? '')
-            )
-            .join('')
-            .trim();
-        } catch (_) {
-          return '';
+          while (true) {
+            const { done, value } = await reader!.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  // Save message to database when complete
+                  try {
+                    if (conversationId && fullResponse.trim()) {
+                      await supabase.from('messages').insert({
+                        conversation_id: conversationId,
+                        content: fullResponse.trim(),
+                        role: 'assistant',
+                        tokens: tokenCount,
+                      });
+
+                      await supabase
+                        .from('conversations')
+                        .update({ updated_at: new Date().toISOString() })
+                        .eq('id', conversationId);
+                    }
+                  } catch (dbError) {
+                    console.error('Erro ao salvar mensagem:', dbError);
+                  }
+                  
+                  controller.enqueue(new TextEncoder().encode(`data: [DONE]\n\n`));
+                  controller.close();
+                  return;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  
+                  if (content) {
+                    fullResponse += content;
+                    tokenCount++;
+                    
+                    // Send streaming chunk to client
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content, type: 'chunk' })}\n\n`));
+                  }
+                } catch (parseError) {
+                  // Skip invalid JSON chunks
+                  continue;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Erro no streaming' })}\n\n`));
+          controller.close();
         }
-      }
-      // Último recurso: stringify seguro
-      try {
-        return JSON.stringify(content);
-      } catch (_) {
-        return '';
-      }
-    }
-
-    let aiResponseText = coerceToText(messageContent.content).trim();
-
-    if (!aiResponseText) {
-      console.warn('OpenAI retornou conteúdo vazio. Dump parcial da escolha:',
-        JSON.stringify({ finish_reason: choice.finish_reason, messageKeys: Object.keys(messageContent || {}) }).slice(0, 500)
-      );
-      aiResponseText = 'Não encontrei informações suficientes para responder com precisão agora. Tente reformular a pergunta ou ser mais específico.';
-    }
-
-    const tokensUsed = data?.usage?.total_tokens || 0;
-
-    console.log(`Tokens utilizados: ${tokensUsed}`);
-    console.log('=== FIM DA CONSULTA ===');
-
-    return new Response(JSON.stringify({
-      response: aiResponseText,
-      tokens: tokensUsed
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     });
 
+    return new Response(stream, { headers: streamHeaders });
+
   } catch (error) {
-    console.error('Erro na função chat-ai:', error);
+    console.error('Erro no edge function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message || 'Erro interno do servidor' 
+      error: 'Erro interno do servidor',
+      details: error.message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

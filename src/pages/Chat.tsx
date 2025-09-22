@@ -10,8 +10,8 @@ import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarHeader
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useMaxAvatar } from '@/hooks/useMaxAvatar';
-import { GlobalModelSelector } from '@/components/GlobalModelSelector';
-import { DocumentManager } from '@/components/DocumentManager';
+import GlobalModelSelector from '@/components/GlobalModelSelector';
+import DocumentManager from '@/components/DocumentManager';
 
 interface Message {
   id: string;

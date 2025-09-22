@@ -10,8 +10,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useMaxAvatar } from '@/hooks/useMaxAvatar';
-import GlobalModelSelector from '@/components/GlobalModelSelector';
-import DocumentManager from '@/components/DocumentManager';
 
 interface Message {
   id: string;
@@ -316,10 +314,6 @@ const Chat = () => {
                 <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
               )}
               <span className="font-semibold">Max - Assistente Fiscaltech</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <GlobalModelSelector />
-              <DocumentManager />
             </div>
           </div>
 

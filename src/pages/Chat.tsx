@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useMaxAvatar } from '@/hooks/useMaxAvatar';
@@ -270,107 +270,106 @@ const Chat = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <Sidebar className="w-80">
-          <SidebarHeader className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Conversas</h2>
-              <Button onClick={createNewConversation} size="sm" variant="ghost">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <ScrollArea className="flex-1">
-              <SidebarMenu>
-                {conversations.map((conversation) => (
-                  <SidebarMenuItem key={conversation.id}>
-                    <SidebarMenuButton
-                      onClick={() => {
-                        setCurrentConversation(conversation.id);
-                        loadMessages(conversation.id);
-                      }}
-                      isActive={currentConversation === conversation.id}
-                      className="w-full justify-start p-2 group"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      <span className="truncate flex-1 text-left">
-                        {conversation.title}
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </ScrollArea>
-          </SidebarContent>
-        </Sidebar>
-
-        <div className="flex-1 flex flex-col">
-          <div className="border-b p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <div className="flex items-center gap-2">
-                {avatarUrl && (
-                  <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
-                )}
-                <span className="font-semibold">Max - Assistente Fiscaltech</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <GlobalModelSelector />
-              <DocumentManager />
-            </div>
+    <div className="flex h-screen w-full">
+      {/* Sidebar de conversas */}
+      <div className="w-80 border-r bg-background">
+        <div className="border-b p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Conversas</h2>
+            <Button onClick={createNewConversation} size="sm" variant="ghost">
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
-
-          <ScrollArea className="flex-1 p-4">
-            <div className="max-w-4xl mx-auto space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap">{message.content}</div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-
-          <div className="border-t p-4">
-            <div className="max-w-4xl mx-auto flex gap-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                className="flex-1"
-                disabled={loading}
-              />
-              <Button 
-                onClick={sendMessage} 
-                disabled={!inputValue.trim() || loading}
-                size="icon"
+        </div>
+        <ScrollArea className="flex-1 h-[calc(100vh-73px)]">
+          <div className="p-2">
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                onClick={() => {
+                  setCurrentConversation(conversation.id);
+                  loadMessages(conversation.id);
+                }}
+                className={`w-full text-left p-3 rounded-lg mb-2 transition-colors hover:bg-muted ${
+                  currentConversation === conversation.id 
+                    ? 'bg-muted text-foreground' 
+                    : 'text-muted-foreground'
+                }`}
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {conversation.title}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Área principal do chat */}
+      <div className="flex-1 flex flex-col">
+        <div className="border-b p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {avatarUrl && (
+              <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
+            )}
+            <span className="font-semibold">Max - Assistente Fiscaltech</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <GlobalModelSelector />
+            <DocumentManager />
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1 p-4">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+
+        <div className="border-t p-4">
+          <div className="max-w-4xl mx-auto flex gap-2">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem..."
+              className="flex-1"
+              disabled={loading}
+            />
+            <Button 
+              onClick={sendMessage} 
+              disabled={!inputValue.trim() || loading}
+              size="icon"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 

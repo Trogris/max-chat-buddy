@@ -270,20 +270,20 @@ const Chat = () => {
   }
 
   return (
-    <div className="chat-container min-h-screen bg-background">
-      <div className="chat-layout flex h-screen">
-        {/* Chat Sidebar */}
-        <div className="chat-sidebar w-80 border-r bg-card">
-          <div className="chat-header border-b p-4">
+    <div className="min-h-screen bg-background">
+      <div className="flex h-screen">
+        {/* Sidebar de Conversas */}
+        <div className="w-80 border-r bg-card">
+          <div className="border-b p-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Conversas</h2>
+              <h2 className="text-lg font-semibold">Conversas</h2>
               <Button onClick={createNewConversation} size="sm" variant="ghost">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <ScrollArea className="chat-conversations h-[calc(100vh-73px)]">
-            <div className="p-2">
+          <ScrollArea className="h-[calc(100vh-73px)]">
+            <div className="p-2 space-y-2">
               {conversations.map((conversation) => (
                 <button
                   key={conversation.id}
@@ -291,7 +291,7 @@ const Chat = () => {
                     setCurrentConversation(conversation.id);
                     loadMessages(conversation.id);
                   }}
-                  className={`w-full text-left p-3 rounded-lg mb-2 transition-colors hover:bg-accent ${
+                  className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-accent ${
                     currentConversation === conversation.id 
                       ? 'bg-accent text-accent-foreground' 
                       : 'text-muted-foreground'
@@ -299,9 +299,7 @@ const Chat = () => {
                 >
                   <div className="flex items-center gap-2">
                     <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">
-                      {conversation.title}
-                    </span>
+                    <span className="truncate">{conversation.title}</span>
                   </div>
                 </button>
               ))}
@@ -309,14 +307,15 @@ const Chat = () => {
           </ScrollArea>
         </div>
 
-        {/* Chat Main Area */}
-        <div className="chat-main flex-1 flex flex-col bg-background">
-          <div className="chat-top-bar border-b p-4 flex items-center justify-between bg-card">
+        {/* Área Principal do Chat */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="border-b p-4 flex items-center justify-between bg-card">
             <div className="flex items-center gap-2">
               {avatarUrl && (
                 <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
               )}
-              <span className="font-semibold text-foreground">Max - Assistente Fiscaltech</span>
+              <span className="font-semibold">Max - Assistente Fiscaltech</span>
             </div>
             <div className="flex items-center gap-2">
               <GlobalModelSelector />
@@ -324,7 +323,8 @@ const Chat = () => {
             </div>
           </div>
 
-          <ScrollArea className="chat-messages flex-1 p-4">
+          {/* Mensagens */}
+          <ScrollArea className="flex-1 p-4">
             <div className="max-w-4xl mx-auto space-y-4">
               {messages.map((message) => (
                 <div
@@ -335,7 +335,7 @@ const Chat = () => {
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                        : 'bg-muted text-foreground'
                     }`}
                   >
                     <div className="whitespace-pre-wrap">{message.content}</div>
@@ -346,7 +346,8 @@ const Chat = () => {
             </div>
           </ScrollArea>
 
-          <div className="chat-input-area border-t p-4 bg-card">
+          {/* Input de Mensagem */}
+          <div className="border-t p-4 bg-card">
             <div className="max-w-4xl mx-auto flex gap-2">
               <Input
                 value={inputValue}

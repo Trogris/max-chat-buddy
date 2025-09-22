@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Navigate } from 'react-router-dom';
-import { Send, MessageSquare, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Navigate, Link } from 'react-router-dom';
+import { Send, MessageSquare, Plus, Trash2, Loader2, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +36,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
 
@@ -44,6 +45,26 @@ const Chat = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Verificar se o usuário é admin
+  useEffect(() => {
+    const checkAdminStatus = () => {
+      if (!user?.email) return;
+      
+      // Verificar se o email é do Charles Wellington Andrade
+      if (user.email === 'cwa.andrade@gmail.com') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    if (user) {
+      checkAdminStatus();
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user?.email]);
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
@@ -315,6 +336,14 @@ const Chat = () => {
               )}
               <span className="font-semibold">Max - Assistente Fiscaltech</span>
             </div>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/admin">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* Mensagens */}

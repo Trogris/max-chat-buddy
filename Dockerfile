@@ -16,7 +16,7 @@ RUN bun install
 COPY . .
 
 # Build de produção
-RUN bun run build
+RUN vite build
 
 # Servidor nginx para servir os arquivos estáticos
 FROM nginx:alpine

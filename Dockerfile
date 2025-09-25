@@ -10,6 +10,7 @@ COPY bun.lockb ./
 
 # Instalar dependências
 RUN npm install -g bun
+RUN npm install -g vite
 RUN bun install
 
 # Copiar código fonte

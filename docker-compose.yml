@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  fiscaltech-max-frontend:
+    build: .
+    container_name: fiscaltech-max-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/ssl/certs:ro  # Para certificados SSL se necessário
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - fiscaltech-network
+
+  # Nginx reverse proxy (opcional para múltiplos domínios)
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - fiscaltech-max-frontend
+    restart: unless-stopped
+    networks:
+      - fiscaltech-network
+
+networks:
+  fiscaltech-network:
+    driver: bridge
+
+volumes:
+  ssl-certs:

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Send, MessageSquare, Plus, Trash2, Loader2, Settings, Menu } from 'lucide-react';
+import { Send, MessageSquare, Plus, Loader2, Settings, Menu, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -271,6 +271,41 @@ const Chat = () => {
     }
   };
 
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+      
+      if (error) throw error;
+      
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      
+      if (currentConversation === conversationId) {
+        const remainingConvs = conversations.filter(c => c.id !== conversationId);
+        if (remainingConvs.length > 0) {
+          setCurrentConversation(remainingConvs[0].id);
+          loadMessages(remainingConvs[0].id);
+        } else {
+          setCurrentConversation(null);
+          setMessages([]);
+        }
+      }
+      
+      toast({
+        title: "Conversa excluída",
+        description: "A conversa foi removida com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir conversa",
+        description: "Não foi possível excluir a conversa.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -303,24 +338,37 @@ const Chat = () => {
       <ScrollArea className="h-[calc(100vh-73px)]">
         <div className="p-2 space-y-2">
           {conversations.map((conversation) => (
-            <button
+            <div
               key={conversation.id}
-              onClick={() => {
-                setCurrentConversation(conversation.id);
-                loadMessages(conversation.id);
-                setSidebarOpen(false);
-              }}
-              className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-accent ${
+              className={`group relative w-full text-left p-3 rounded-lg transition-colors hover:bg-accent ${
                 currentConversation === conversation.id 
                   ? 'bg-accent text-accent-foreground' 
                   : 'text-muted-foreground'
               }`}
             >
-              <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCurrentConversation(conversation.id);
+                  loadMessages(conversation.id);
+                  setSidebarOpen(false);
+                }}
+                className="w-full flex items-center gap-2"
+              >
                 <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{conversation.title}</span>
-              </div>
-            </button>
+                <span className="truncate flex-1">{conversation.title}</span>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(conversation.id);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           ))}
         </div>
       </ScrollArea>

@@ -593,27 +593,27 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-2 md:px-4 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
               <Button variant="outline" size="sm" asChild>
                 <Link to="/chat">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar ao Chat
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Voltar ao Chat</span>
                 </Link>
               </Button>
-              <h1 className="text-2xl font-bold">Painel Administrativo</h1>
+              <h1 className="text-xl md:text-2xl font-bold">Painel Administrativo</h1>
             </div>
-            <Button variant="outline" onClick={signOut}>
+            <Button variant="outline" size="sm" onClick={signOut}>
               Sair
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8">
         <Tabs defaultValue="max-kpis" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
             <TabsTrigger value="max-kpis">KPIs do Max</TabsTrigger>
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
@@ -621,14 +621,14 @@ export default function Admin() {
             <TabsTrigger value="models">Modelos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="max-kpis" className="space-y-6 mt-6">
+          <TabsContent value="max-kpis" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
             {/* Usuários Ativos */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <Users className="h-4 md:h-5 w-4 md:w-5" />
                 Usuários Ativos
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Hoje</CardTitle>
@@ -661,11 +661,11 @@ export default function Admin() {
 
             {/* Conversas Realizadas */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <MessageSquare className="h-4 md:h-5 w-4 md:w-5" />
                 Conversas Realizadas
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Total de Sessões</CardTitle>
@@ -698,11 +698,11 @@ export default function Admin() {
 
             {/* Engajamento */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 md:h-5 w-4 md:w-5" />
                 Engajamento
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Pico de Uso</CardTitle>
@@ -735,11 +735,11 @@ export default function Admin() {
 
             {/* Qualidade das Respostas */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <BarChart3 className="h-4 md:h-5 w-4 md:w-5" />
                 Qualidade das Respostas
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Taxa de Sucesso</CardTitle>
@@ -772,11 +772,11 @@ export default function Admin() {
 
             {/* Performance Técnica */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <Clock className="h-4 md:h-5 w-4 md:w-5" />
                 Performance Técnica
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Tempo Médio de Resposta</CardTitle>
@@ -809,11 +809,11 @@ export default function Admin() {
 
             {/* Consumo & Custos */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <DollarSign className="h-4 md:h-5 w-4 md:w-5" />
                 Consumo & Custos
               </h3>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Tokens Processados</CardTitle>
@@ -846,11 +846,11 @@ export default function Admin() {
 
             {/* Acessos por Área */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Activity className="h-5 w-5" />
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <Activity className="h-4 md:h-5 w-4 md:w-5" />
                 Acessos por Área (últimos 30 dias)
               </h3>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {maxKPIs.acessosPorArea.length ? (
                   maxKPIs.acessosPorArea.map((item) => (
                     <Card key={item.area}>
@@ -881,8 +881,8 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          <TabsContent value="stats" className="space-y-6 mt-6">
-            <div className="grid md:grid-cols-3 gap-6">
+          <TabsContent value="stats" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total de Mensagens</CardTitle>
@@ -924,9 +924,9 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-6 mt-6">
+          <TabsContent value="documents" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
             {/* Estatísticas do Sistema RAG */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
@@ -996,21 +996,21 @@ export default function Admin() {
             </div>
 
             {/* Controles do Sistema RAG */}
-            <Card className="mb-6">
+            <Card className="mb-4 md:mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Zap className="h-4 md:h-5 w-4 md:w-5" />
                   Controles do Sistema RAG
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Gerencie a ingestão e processamento dos documentos para busca semântica
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-medium">Reprocessar Todos os Documentos</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-medium text-sm md:text-base">Reprocessar Todos os Documentos</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       Executa chunking e geração de embeddings para todos os documentos
                     </p>
                   </div>
@@ -1025,16 +1025,17 @@ export default function Admin() {
                       onClick={ingestAllDocuments}
                       disabled={ingestingAll || ragStats.totalDocuments === 0}
                       className="flex items-center gap-2"
+                      size="sm"
                     >
                       {ingestingAll ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Processando...
+                          <span className="hidden sm:inline">Processando...</span>
                         </>
                       ) : (
                         <>
                           <Database className="h-4 w-4" />
-                          Reprocessar Tudo
+                          <span className="hidden sm:inline">Reprocessar Tudo</span>
                         </>
                       )}
                     </Button>
@@ -1046,11 +1047,11 @@ export default function Admin() {
             <DocumentManager />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6 mt-6">
+          <TabsContent value="users" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Usuários Cadastrados</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base md:text-lg">Usuários Cadastrados</CardTitle>
+                <CardDescription className="text-sm">
                   Lista de todos os usuários do sistema
                 </CardDescription>
               </CardHeader>
@@ -1059,18 +1060,18 @@ export default function Admin() {
                   {profiles.map((profile) => (
                     <div
                       key={profile.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 border rounded-lg gap-3"
                     >
-                      <div className="flex-1">
-                        <p className="font-medium">{profile.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex-1 w-full sm:w-auto">
+                        <p className="font-medium text-sm md:text-base">{profile.name}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           Criado em {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                         </p>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-xs md:text-sm text-muted-foreground mt-1">
                           Área: {profile.area || 'Não informado'} | Modelo: {profile.preferred_model || 'gpt-4.1-2025-04-14'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                         <div className="text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             profile.role === 'admin' 
@@ -1080,7 +1081,7 @@ export default function Admin() {
                             {profile.role === 'admin' ? 'Administrador' : 'Usuário'}
                           </span>
                         </div>
-                        <div className="min-w-[200px]">
+                        <div className="w-full sm:min-w-[200px]">
                           <Select
                             value={profile.preferred_model || 'gpt-4.1-2025-04-14'}
                             onValueChange={(value) => updateUserModel(profile.user_id, value)}
@@ -1099,7 +1100,7 @@ export default function Admin() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="min-w-[150px]">
+                        <div className="w-full sm:min-w-[150px]">
                           <Select
                             value={profile.area || 'Não informado'}
                             onValueChange={(value) => updateUserArea(profile.user_id, value)}
@@ -1130,19 +1131,19 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="models" className="space-y-6 mt-6">
+          <TabsContent value="models" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Modelo Global de IA</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base md:text-lg">Modelo Global de IA</CardTitle>
+                <CardDescription className="text-sm">
                   Configure o modelo de IA que será usado por TODOS os usuários (apenas administradores)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">ℹ️ Informações sobre os Modelos</h4>
-                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                  <div className="mb-4 p-3 md:p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2 text-sm md:text-base">ℹ️ Informações sobre os Modelos</h4>
+                    <div className="text-xs md:text-sm text-blue-800 dark:text-blue-200 space-y-1">
                       <p><strong>GPT-5:</strong> Modelo mais avançado disponível</p>
                       <p><strong>GPT-5 Mini:</strong> Versão mais rápida e econômica do GPT-5</p>
                       <p><strong>GPT-4.1:</strong> Modelo principal recomendado para uso geral</p>

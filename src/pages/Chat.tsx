@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { Send, MessageSquare, Plus, Trash2, Loader2, Settings } from 'lucide-react';
+import { Send, MessageSquare, Plus, Trash2, Loader2, Settings, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,7 @@ const Chat = () => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
 
@@ -288,66 +290,85 @@ const Chat = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const ConversationsList = () => (
+    <>
+      <div className="border-b p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Conversas</h2>
+          <Button onClick={createNewConversation} size="sm" variant="ghost">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <ScrollArea className="h-[calc(100vh-73px)]">
+        <div className="p-2 space-y-2">
+          {conversations.map((conversation) => (
+            <button
+              key={conversation.id}
+              onClick={() => {
+                setCurrentConversation(conversation.id);
+                loadMessages(conversation.id);
+                setSidebarOpen(false);
+              }}
+              className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-accent ${
+                currentConversation === conversation.id 
+                  ? 'bg-accent text-accent-foreground' 
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{conversation.title}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen">
-        {/* Sidebar de Conversas */}
-        <div className="w-80 border-r bg-card">
-          <div className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Conversas</h2>
-              <Button onClick={createNewConversation} size="sm" variant="ghost">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <ScrollArea className="h-[calc(100vh-73px)]">
-            <div className="p-2 space-y-2">
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  onClick={() => {
-                    setCurrentConversation(conversation.id);
-                    loadMessages(conversation.id);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-accent ${
-                    currentConversation === conversation.id 
-                      ? 'bg-accent text-accent-foreground' 
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{conversation.title}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
+        {/* Sidebar Desktop */}
+        <div className="hidden md:block w-80 border-r bg-card">
+          <ConversationsList />
         </div>
 
         {/* Área Principal do Chat */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col w-full">
           {/* Header */}
           <div className="border-b p-4 flex items-center justify-between bg-card">
             <div className="flex items-center gap-2">
+              {/* Menu Mobile */}
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80 p-0">
+                  <ConversationsList />
+                </SheetContent>
+              </Sheet>
+              
               {avatarUrl && (
                 <img src={avatarUrl} alt="Max Avatar" className="w-8 h-8 rounded-full" />
               )}
-              <span className="font-semibold">Max - Assistente Fiscaltech</span>
+              <span className="font-semibold text-sm md:text-base">Max - Assistente Fiscaltech</span>
             </div>
             {isAdmin && (
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/admin">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Admin
+                  <Settings className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Admin</span>
                 </Link>
               </Button>
             )}
           </div>
 
           {/* Mensagens */}
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-2 md:p-4">
             <div className="max-w-4xl mx-auto space-y-4">
               {messages.map((message) => (
                 <div
@@ -355,13 +376,13 @@ const Chat = () => {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-[85%] md:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-lg ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-foreground'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    <div className="whitespace-pre-wrap text-sm md:text-base">{message.content}</div>
                   </div>
                 </div>
               ))}
@@ -370,20 +391,21 @@ const Chat = () => {
           </ScrollArea>
 
           {/* Input de Mensagem */}
-          <div className="border-t p-4 bg-card">
+          <div className="border-t p-2 md:p-4 bg-card">
             <div className="max-w-4xl mx-auto flex gap-2">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Digite sua mensagem..."
-                className="flex-1"
+                className="flex-1 text-sm md:text-base"
                 disabled={loading}
               />
               <Button 
                 onClick={sendMessage} 
                 disabled={!inputValue.trim() || loading}
                 size="icon"
+                className="shrink-0"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Send, MessageSquare, Plus, Loader2, Settings, Menu, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -40,6 +40,7 @@ const Chat = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
 
   const { avatarUrl } = useMaxAvatar();
@@ -47,6 +48,15 @@ const Chat = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+    }
+  }, [inputValue]);
 
   // Verificar se o usuário é admin
   useEffect(() => {
@@ -155,6 +165,12 @@ const Chat = () => {
 
     const userMessage = inputValue.trim();
     setInputValue('');
+    
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    
     setLoading(true);
 
     try {
@@ -439,21 +455,23 @@ const Chat = () => {
           </ScrollArea>
 
           {/* Input de Mensagem */}
-          <div className="border-t p-2 md:p-4 bg-card">
-            <div className="max-w-4xl mx-auto flex gap-2">
-              <Input
+          <div className="border-t p-2 md:p-4 bg-card pb-safe">
+            <div className="max-w-4xl mx-auto flex gap-2 items-end">
+              <Textarea
+                ref={textareaRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder="Digite sua mensagem..."
-                className="flex-1 text-sm md:text-base"
+                className="flex-1 text-sm md:text-base resize-none min-h-[40px] max-h-[150px] overflow-y-auto"
                 disabled={loading}
+                rows={1}
               />
               <Button 
                 onClick={sendMessage} 
                 disabled={!inputValue.trim() || loading}
                 size="icon"
-                className="shrink-0"
+                className="shrink-0 h-10 w-10"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
